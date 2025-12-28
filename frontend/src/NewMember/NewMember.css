@@ -1,0 +1,113 @@
+.app-root {
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px;
+}
+* {
+  color: black;
+}
+/* Card / Formular-Box */
+.form-box {
+  width: 100%;
+  max-width: 900px;
+  border-radius: 14px;
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid rgba(20, 40, 80, 0.06);
+  padding: 28px;
+}
+
+/* Überschrift */
+.form-box h4,
+.form-box h1 {
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
+/* Sektionstitel */
+.form-box .MuiTypography-h6 {
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* Textfelder: abgerundete Kanten und sanfter Schatten */
+.form-box .MuiTextField-root .MuiInputBase-root,
+.form-box .MuiAutocomplete-root .MuiInputBase-root {
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+}
+
+/* Labels leicht dunkler */
+.form-box .MuiFormLabel-root {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* Helper text muted */
+.form-box .MuiFormHelperText-root {
+  color: var(--muted);
+}
+
+/* Button: Farbverlauf und Hover */
+.submit-button {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: #fff;
+  border-radius: 10px;
+  text-transform: none;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(11, 95, 155, 0.14);
+}
+.submit-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(11, 95, 155, 0.18);
+}
+
+/* Autocomplete Chips (Ausgewählte Dienste) */
+.form-box .MuiChip-root {
+  background: linear-gradient(
+    90deg,
+    rgba(25, 118, 210, 0.12),
+    rgba(11, 95, 155, 0.08)
+  );
+  border: 1px solid rgba(25, 118, 210, 0.12);
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
+/* Sicherstellen, dass alle Grid-Items in .member-form 100% Breite haben und vertikal gestapelt sind */
+.member-form .MuiGrid-container {
+  flex-direction: column !important;
+}
+.member-form .MuiGrid-item {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Erzwungene FullWidth für TextFields/Autocomplete innerhalb des Formulars */
+.member-form .MuiFormControl-root,
+.member-form .MuiAutocomplete-root,
+.member-form .MuiTextField-root {
+  width: 100% !important;
+}
+
+/* Kleiner Abstand zwischen Feldern, damit alles gut lesbar bleibt */
+.member-form .MuiGrid-item + .MuiGrid-item {
+  margin-top: 12px;
+}
+
+/* Responsivität: auf kleinen Bildschirmen weniger Padding */
+@media (max-width: 600px) {
+  .form-box {
+    padding: 16px;
+    border-radius: 8px;
+  }
+  .app-root {
+    padding: 18px 10px;
+  }
+  .submit-button {
+    width: 100%;
+    font-size: 1rem;
+    padding: 12px;
+  }
+}

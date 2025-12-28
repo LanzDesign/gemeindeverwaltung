@@ -1,0 +1,126 @@
+/* Farbpalette und Grundlayout */
+:root {
+  --bg-start: #f3f7fb;
+  --bg-end: #e8eef8;
+  --card-bg: rgba(255, 255, 255, 0.92);
+  --accent: #1976d2; /* MUI primary default */
+  --accent-2: #0b5f9b;
+  --muted: #6b7280;
+  --glass-blur: 8px;
+}
+
+/* Seite */
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  font-family: "Inter", "Roboto", "Helvetica", "Arial", sans-serif;
+  background: linear-gradient(160deg, var(--bg-start), var(--bg-end));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Mobile Typografie und Layoutanpassungen */
+@media (max-width: 600px) {
+  body {
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .MuiContainer-root {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .MuiDialog-paper {
+    margin: 8px !important;
+    width: 100% !important;
+  }
+  .MuiTableContainer-root {
+    overflow-x: auto;
+  }
+  .MuiTableCell-root {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  .MuiButton-root {
+    min-height: 44px !important;
+    padding: 10px 16px !important;
+  }
+  .MuiIconButton-root {
+    padding: 12px !important;
+  }
+}
+
+/* Tablet-optimierte Anpassungen */
+@media (min-width: 601px) and (max-width: 960px) {
+  .MuiContainer-root {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  .MuiButton-root {
+    min-height: 42px;
+  }
+}
+
+/* Haupt-Container zentrieren */
+
+/* NewMember spezifische Styles */
+.member-form .form-section {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.member-form .form-section h6 {
+  color: var(--accent-2);
+  font-weight: 700;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 8px;
+}
+
+.member-form .signature-canvas {
+  border: 2px dashed var(--accent);
+  border-radius: 8px;
+  background: white;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  width: 100%;
+}
+
+.member-form .photo-upload-zone {
+  border: 2px dashed var(--muted);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.member-form .photo-upload-zone:hover {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.success-animation {
+  animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

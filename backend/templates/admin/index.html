@@ -1,0 +1,61 @@
+{% extends "admin/index.html" %} {% block content %}
+<div
+  style="
+    margin-bottom: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  "
+>
+  <h2 style="color: white; margin: 0 0 10px 0">🗄️ Schnellzugriff</h2>
+  <div style="display: flex; gap: 10px; flex-wrap: wrap">
+    <a
+      href="{% url 'backup_dashboard' %}"
+      style="
+        display: inline-block;
+        padding: 10px 20px;
+        background: white;
+        color: #667eea;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      "
+    >
+      📥 Backups verwalten
+    </a>
+    <a
+      href="/admin/members/member/"
+      style="
+        display: inline-block;
+        padding: 10px 20px;
+        background: white;
+        color: #667eea;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      "
+    >
+      👥 Mitglieder
+    </a>
+    <a
+      href="/trash"
+      style="
+        display: inline-block;
+        padding: 10px 20px;
+        background: white;
+        color: #667eea;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      "
+    >
+      🗑️ Papierkorb
+    </a>
+  </div>
+</div>
+
+{{ block.super }} {% endblock %}

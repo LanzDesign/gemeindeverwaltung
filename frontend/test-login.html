@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Login Test</title>
+  </head>
+  <body>
+    <h1>Login-Test (ohne React)</h1>
+    <button onclick="testLogin()">Test Login</button>
+    <pre id="result"></pre>
+
+    <script>
+      async function testLogin() {
+        const result = document.getElementById("result");
+        result.textContent = "Sende Request...";
+        try {
+          const response = await fetch(
+            "https://api.fecg-lahr-app.de/auth/",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username: "admin", password: "admin" }),
+            }
+          );
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          const data = await response.json();
+          result.textContent = "Erfolg:\n" + JSON.stringify(data, null, 2);
+        } catch (err) {
+          result.textContent =
+            "Fehler:\n" +
+            err.message +
+            "\n\nPrüfe:\n- Backend läuft?\n- CORS konfiguriert?\n- Adblocker aus?";
+        }
+      }
+    </script>
+  </body>
+</html>
