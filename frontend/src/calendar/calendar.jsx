@@ -453,8 +453,7 @@ export default function ModernCalendar({ type = 'gemeinde' }) {
 
       <Paper elevation={0} sx={{ width: { xs: '100%', md: 350 }, p: 3, borderRadius: 3, background: theme.palette.mode === 'dark' ? `linear-gradient(135deg, ${alpha('#3b82f6', 0.05)} 0%, ${alpha('#6d28d9', 0.05)} 100%)` : theme.palette.background.paper, border: `1px solid ${theme.palette.divider}` }}>
         <Typography variant="h6" fontWeight="bold" mb={2} sx={{ background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)`, backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Termine</Typography>
-        <Typography variant="body2" color="text.secondary" mb={2}>{selectedDate ? selectedDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Datum w??hlen'}</Typography>
-        <Button fullWidth variant="contained" startIcon={<Add />} onClick={handleAddEvent} disabled={!selectedDate && viewMode === 'month'} sx={{ mb: 2, bgcolor: colors.primary, '&:hover': { bgcolor: alpha(colors.primary, 0.8) }, borderRadius: 2, textTransform: 'none', py: 1.5 }}>Termin hinzuf??gen</Button>
+        <Typography variant="body2" color="text.secondary" mb={2}>{selectedDate ? selectedDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Datum wählen'}</Typography>
         
         <Stack spacing={1} mb={2}>
           <Typography variant="caption" fontWeight="bold">Farblegende:</Typography>

@@ -1,5 +1,11 @@
 from rest_framework import serializers
-from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung
+from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, KalenderKategorie
+
+
+class KalenderKategorieSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KalenderKategorie
+        fields = ['id', 'name', 'bezeichnung', 'farbe', 'aktiv', 'sortierung']
 
 
 class GemeindeterminSerializer(serializers.ModelSerializer):

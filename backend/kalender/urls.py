@@ -1,8 +1,9 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import GemeindeterminViewSet, MitarbeitereintraginViewSet, RaumbelegungViewSet
+from .views import GemeindeterminViewSet, MitarbeitereintraginViewSet, RaumbelegungViewSet, KalenderKategorieViewSet
 
 router = DefaultRouter()
+router.register(r'kategorien', KalenderKategorieViewSet, basename='kalenderkategorie')
 router.register(r'gemeindetermine', GemeindeterminViewSet, basename='gemeindetermin')
 router.register(r'mitarbeitertermine', MitarbeitereintraginViewSet, basename='mitarbeitereintrag')
 router.register(r'raumbelegungen', RaumbelegungViewSet, basename='raumbelegung')

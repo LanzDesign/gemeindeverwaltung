@@ -1,5 +1,19 @@
 from django.contrib import admin
-from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung
+from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, KalenderKategorie
+
+
+@admin.register(KalenderKategorie)
+class KalenderKategorieAdmin(admin.ModelAdmin):
+    list_display = ['bezeichnung', 'name', 'farbe_anzeigen', 'aktiv', 'sortierung']
+    list_filter = ['aktiv']
+    search_fields = ['name', 'bezeichnung']
+    ordering = ['sortierung', 'name']
+    fields = ['name', 'bezeichnung', 'farbe', 'aktiv', 'sortierung']
+    
+    def farbe_anzeigen(self, obj):
+        return f'<span style="background-color:{obj.farbe}; padding:5px 15px; border-radius:5px; color:white; font-weight:bold;">{obj.farbe}</span>'
+    farbe_anzeigen.short_description = 'Farbe'
+    farbe_anzeigen.allow_tags = True
 
 
 @admin.register(Gemeindetermin)

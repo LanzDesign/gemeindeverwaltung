@@ -3,6 +3,25 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 
+class KalenderKategorie(models.Model):
+    """Zentrale Kategorie-Verwaltung für alle Kalender"""
+    name = models.CharField(max_length=50, unique=True)
+    bezeichnung = models.CharField(max_length=100)
+    farbe = models.CharField(max_length=7, help_text='Hex-Farbcode (z.B. #ea580c)')
+    aktiv = models.BooleanField(default=True)
+    sortierung = models.IntegerField(default=0)
+    erstellt_am = models.DateTimeField(auto_now_add=True)
+    aktualisiert_am = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sortierung', 'name']
+        verbose_name = "Kalender-Kategorie"
+        verbose_name_plural = "Kalender-Kategorien"
+
+    def __str__(self):
+        return f"{self.bezeichnung} ({self.name})"
+
+
 class Gemeindetermin(models.Model):
     """Gemeindetermine (Events der Gemeinde)"""
     KATEGORIE_CHOICES = [
