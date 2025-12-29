@@ -87,7 +87,7 @@ export default function MitarbeiterKalenderView() {
         await Promise.all([
           axiosInstance.get("/mitarbeiter/"),
           axiosInstance.get("/mitarbeitertermine/"),
-          axiosInstance.get("/kategorien/"),
+          axiosInstance.get("/mitarbeiterkategorien/"),
           axiosInstance.get(`/feiertage/?jahr=${jahr}&monat=${monat}`),
         ]);
       setMitarbeiter(mitarbeiterRes.data);
