@@ -1,0 +1,13 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+db.sqlite3
+.env
+media/
+staticfiles/
+
+# Datenbank Backups
+*.sql
+
+# Docker
+.docker_data/
