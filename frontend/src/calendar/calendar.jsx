@@ -502,8 +502,8 @@ export default function ModernCalendar({ type = "gemeinde" }) {
               variant="contained"
               startIcon={<Add />}
               onClick={() => {
-                setNewEventDate(formatDate(new Date()));
-                handleOpenEventDialog();
+                setSelectedDate(new Date());
+                handleAddEvent();
               }}
               sx={{
                 bgcolor: colors.primary,
