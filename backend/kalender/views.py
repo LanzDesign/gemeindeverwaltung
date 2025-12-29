@@ -1,6 +1,35 @@
 from rest_framework import viewsets, permissions
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
 from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, KalenderKategorie, Mitarbeiter
 from .serializers import GemeindeterminSerializer, MitarbeitereintraginSerializer, RaumbelegungSerializer, KalenderKategorieSerializer, MitarbeiterSerializer
+from .services import FeiertagService
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def feiertage_view(request):
+    """API-Endpoint für Feiertage"""
+    jahr = request.GET.get('jahr')
+    monat = request.GET.get('monat')
+    
+    if not jahr:
+        from datetime import date
+        jahr = date.today().year
+    else:
+        jahr = int(jahr)
+    
+    if monat:
+        monat = int(monat)
+        feiertage = FeiertagService.get_feiertage_for_month(jahr, monat)
+    else:
+        feiertage = FeiertagService.get_feiertage(jahr)
+    
+    return Response({
+        'jahr': jahr,
+        'monat': monat,
+        'feiertage': feiertage
+    })
 
 
 class MitarbeiterViewSet(viewsets.ModelViewSet):

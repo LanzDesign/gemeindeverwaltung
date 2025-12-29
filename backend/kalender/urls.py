@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import GemeindeterminViewSet, MitarbeitereintraginViewSet, RaumbelegungViewSet, KalenderKategorieViewSet, MitarbeiterViewSet
+from .views import GemeindeterminViewSet, MitarbeitereintraginViewSet, RaumbelegungViewSet, KalenderKategorieViewSet, MitarbeiterViewSet, feiertage_view
 
 router = DefaultRouter()
 router.register(r'mitarbeiter', MitarbeiterViewSet, basename='mitarbeiter')
@@ -10,5 +10,6 @@ router.register(r'mitarbeitertermine', MitarbeitereintraginViewSet, basename='mi
 router.register(r'raumbelegungen', RaumbelegungViewSet, basename='raumbelegung')
 
 urlpatterns = [
+    path('feiertage/', feiertage_view, name='feiertage'),
     path('', include(router.urls)),
 ]

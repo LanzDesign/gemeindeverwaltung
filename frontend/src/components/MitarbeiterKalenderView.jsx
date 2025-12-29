@@ -47,6 +47,7 @@ export default function MitarbeiterKalenderView() {
   const [mitarbeiter, setMitarbeiter] = useState([]);
   const [eintraege, setEintraege] = useState([]);
   const [kategorien, setKategorien] = useState([]);
+  const [feiertage, setFeiertage] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [selectedMitarbeiter, setSelectedMitarbeiter] = useState("");
@@ -69,14 +70,19 @@ export default function MitarbeiterKalenderView() {
 
   const loadData = async () => {
     try {
-      const [mitarbeiterRes, eintraegeRes, kategorienRes] = await Promise.all([
+      const jahr = currentDate.getFullYear();
+      const monat = currentDate.getMonth() + 1;
+      
+      const [mitarbeiterRes, eintraegeRes, kategorienRes, feiertageRes] = await Promise.all([
         axiosInstance.get("/mitarbeiter/"),
         axiosInstance.get("/mitarbeitertermine/"),
         axiosInstance.get("/kategorien/"),
+        axiosInstance.get(`/feiertage/?jahr=${jahr}&monat=${monat}`),
       ]);
       setMitarbeiter(mitarbeiterRes.data);
       setEintraege(eintraegeRes.data);
       setKategorien(kategorienRes.data);
+      setFeiertage(feiertageRes.data.feiertage || []);
     } catch (error) {
       console.error("Fehler beim Laden:", error);
     }
@@ -93,17 +99,23 @@ export default function MitarbeiterKalenderView() {
       const date = new Date(year, month, d);
       const dayOfWeek = date.getDay();
       const weekdayMondayStart = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const dateString = date.toISOString().split("T")[0];
+      
+      // Feiertag prüfen
+      const feiertag = feiertage.find(ft => ft.datum === dateString);
+      
       days.push({
         day: d,
         weekday: dayOfWeek,
         weekdayMondayStart: weekdayMondayStart,
         date: date,
-        dateString: date.toISOString().split("T")[0],
+        dateString: dateString,
         isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+        feiertag: feiertag || null,
       });
     }
     return days;
-  }, [currentDate]);
+  }, [currentDate, feiertage]);
 
   // Hole Einträge für bestimmten Tag und Mitarbeiter
   const getEntriesForDay = (mitarbeiterId, dateString) => {
@@ -196,6 +208,7 @@ export default function MitarbeiterKalenderView() {
 
   const renderCell = (mitarbeiterId, dayInfo) => {
     const entries = getEntriesForDay(mitarbeiterId, dayInfo.dateString);
+    const isFeiertag = !!dayInfo.feiertag;
     
     return (
       <TableCell
@@ -207,7 +220,7 @@ export default function MitarbeiterKalenderView() {
           maxWidth: isMobile ? 28 : 35,
           width: isMobile ? 28 : 35,
           padding: "2px",
-          backgroundColor: dayInfo.isWeekend ? "#f5f5f5" : "white",
+          backgroundColor: isFeiertag ? "#fee2e2" : (dayInfo.isWeekend ? "#f5f5f5" : "white"),
           borderRight: "1px solid #ddd",
           borderBottom: "1px solid #ddd",
           cursor: "pointer",
@@ -363,7 +376,7 @@ export default function MitarbeiterKalenderView() {
                     maxWidth: isMobile ? 28 : 35,
                     width: isMobile ? 28 : 35,
                     padding: "4px 2px",
-                    backgroundColor: dayInfo.isWeekend ? "#e0e0e0" : "#5b9bd5",
+                    backgroundColor: dayInfo.feiertag ? "#dc2626" : (dayInfo.isWeekend ? "#e0e0e0" : "#5b9bd5"),
                     color: "white",
                     fontWeight: "bold",
                     fontSize: isMobile ? "10px" : "11px",
@@ -371,10 +384,14 @@ export default function MitarbeiterKalenderView() {
                     borderBottom: "2px solid #ddd",
                   }}
                 >
-                  <div>{dayInfo.day}</div>
-                  <div style={{ fontSize: isMobile ? "8px" : "9px" }}>
-                    {DAY_NAMES_MONDAY_START[dayInfo.weekdayMondayStart]}
-                  </div>
+                  <Tooltip title={dayInfo.feiertag ? dayInfo.feiertag.name : ""} arrow>
+                    <div>
+                      <div>{dayInfo.day}</div>
+                      <div style={{ fontSize: isMobile ? "8px" : "9px" }}>
+                        {dayInfo.feiertag ? "F" : DAY_NAMES_MONDAY_START[dayInfo.weekdayMondayStart]}
+                      </div>
+                    </div>
+                  </Tooltip>
                 </TableCell>
               ))}
             </TableRow>
