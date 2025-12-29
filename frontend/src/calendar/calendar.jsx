@@ -498,6 +498,20 @@ export default function ModernCalendar({ type = "gemeinde" }) {
             >
               {getViewTitle()}
             </Typography>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => {
+                setNewEventDate(formatDate(new Date()));
+                handleOpenEventDialog();
+              }}
+              sx={{
+                bgcolor: colors.primary,
+                "&:hover": { bgcolor: colors.hoverBg },
+              }}
+            >
+              Termin hinzufügen
+            </Button>
             <Stack direction="row" spacing={1}>
               <Button
                 onClick={goToToday}

@@ -152,22 +152,27 @@ class Mitarbeitereintrag(models.Model):
         """Berechne Urlaubstage automatisch"""
         # Prüfe, ob es ein Urlaub-Eintrag ist
         is_new = self.pk is None
+        old_tage = 0
+        
         if not is_new:
             # Hole alte Version für Vergleich
             try:
                 old = Mitarbeitereintrag.objects.get(pk=self.pk)
-                # Ziehe alte Urlaubstage ab wenn sich was ändert
+                # Berechne alte Tage BEVOR wir speichern
                 if old.typ == 'urlaub' and old.mitarbeiter:
-                    old.mitarbeiter.urlaubstage_genommen -= old.dauer_tage
+                    old_tage = old.dauer_tage
+                    # Ziehe alte Urlaubstage ab
+                    old.mitarbeiter.urlaubstage_genommen -= old_tage
                     old.mitarbeiter.save()
             except Mitarbeitereintrag.DoesNotExist:
                 pass
         
         super().save(*args, **kwargs)
         
-        # Füge neue Urlaubstage hinzu
+        # Füge neue Urlaubstage hinzu (nach dem save, damit dauer_tage korrekt berechnet wird)
         if self.typ == 'urlaub' and self.mitarbeiter:
-            self.mitarbeiter.urlaubstage_genommen += self.dauer_tage
+            neue_tage = self.dauer_tage
+            self.mitarbeiter.urlaubstage_genommen += neue_tage
             self.mitarbeiter.save()
     
     def delete(self, *args, **kwargs):
