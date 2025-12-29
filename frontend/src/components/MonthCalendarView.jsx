@@ -35,6 +35,7 @@ const MONTH_NAMES = [
 ];
 
 const DAY_NAMES = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+const DAY_NAMES_MONDAY_START = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
 // Typ-Farben
 const TYPE_COLORS = {
@@ -81,9 +82,13 @@ export default function MonthCalendarView({
     const days = [];
     for (let d = 1; d <= lastDay.getDate(); d++) {
       const date = new Date(year, month, d);
+      const dayOfWeek = date.getDay();
+      // Konvertiere zu Montag-Start (Mo=0, Di=1, ..., So=6)
+      const weekdayMondayStart = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       days.push({
         day: d,
-        weekday: date.getDay(),
+        weekday: dayOfWeek, // Original (So=0, Mo=1, ...)
+        weekdayMondayStart: weekdayMondayStart, // Montag-Start (Mo=0, ..., So=6)
         date: date,
         dateString: date.toISOString().split("T")[0],
       });
@@ -298,7 +303,7 @@ export default function MonthCalendarView({
                 >
                   <div>{dayInfo.day}</div>
                   <div style={{ fontSize: isMobile ? "8px" : "9px" }}>
-                    {DAY_NAMES[dayInfo.weekday]}
+                    {DAY_NAMES_MONDAY_START[dayInfo.weekdayMondayStart]}
                   </div>
                 </TableCell>
               ))}

@@ -12,20 +12,27 @@ import {
 } from '@mui/icons-material';
 import axiosInstance from '../api/axios';
 
-// Deutsche Feiertage berechnen
+// Feiertage für Baden-Württemberg
 const getHolidays = (year) => {
   const easterDate = getEasterDate(year);
   const addDays = (date, days) => { const d = new Date(date); d.setDate(d.getDate() + days); return d; };
   const fd = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   
   return {
-    [`${year}-01-01`]: 'Neujahr', [`${year}-01-06`]: 'Heilige Drei K??nige',
-    [fd(addDays(easterDate, -2))]: 'Karfreitag', [fd(easterDate)]: 'Ostersonntag',
-    [fd(addDays(easterDate, 1))]: 'Ostermontag', [`${year}-05-01`]: 'Tag der Arbeit',
+    [`${year}-01-01`]: 'Neujahr',
+    [`${year}-01-06`]: 'Heilige Drei Könige (BW)',
+    [fd(addDays(easterDate, -2))]: 'Karfreitag',
+    [fd(easterDate)]: 'Ostersonntag',
+    [fd(addDays(easterDate, 1))]: 'Ostermontag',
+    [`${year}-05-01`]: 'Tag der Arbeit',
     [fd(addDays(easterDate, 39))]: 'Christi Himmelfahrt',
-    [fd(addDays(easterDate, 49))]: 'Pfingstsonntag', [fd(addDays(easterDate, 50))]: 'Pfingstmontag',
-    [fd(addDays(easterDate, 60))]: 'Fronleichnam', [`${year}-10-03`]: 'Tag der Deutschen Einheit',
-    [`${year}-11-01`]: 'Allerheiligen', [`${year}-12-25`]: '1. Weihnachtstag', [`${year}-12-26`]: '2. Weihnachtstag',
+    [fd(addDays(easterDate, 49))]: 'Pfingstsonntag',
+    [fd(addDays(easterDate, 50))]: 'Pfingstmontag',
+    [fd(addDays(easterDate, 60))]: 'Fronleichnam (BW)',
+    [`${year}-10-03`]: 'Tag der Deutschen Einheit',
+    [`${year}-11-01`]: 'Allerheiligen (BW)',
+    [`${year}-12-25`]: '1. Weihnachtstag',
+    [`${year}-12-26`]: '2. Weihnachtstag',
   };
 };
 
@@ -105,7 +112,9 @@ export default function ModernCalendar({ type = 'gemeinde' }) {
 
   const generateCalendarDays = () => {
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+    // Konvertiere Sonntag (0) zu 7, damit Montag (1) die erste Position ist
+    const firstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
     const days = [];
     for (let i = 0; i < firstDay; i++) days.push(null);
     for (let day = 1; day <= daysInMonth; day++) days.push(day);
@@ -148,6 +157,13 @@ export default function ModernCalendar({ type = 'gemeinde' }) {
     if (!day) return false;
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     return date.getDay() === 0;
+  };
+
+  const isWeekend = (day) => {
+    if (!day) return false;
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    const dayOfWeek = date.getDay();
+    return dayOfWeek === 0 || dayOfWeek === 6;
   };
 
   const isHoliday = (day) => {
@@ -270,7 +286,7 @@ export default function ModernCalendar({ type = 'gemeinde' }) {
   };
 
   const selectedEvents = selectedDate ? events[formatDate(selectedDate)] || [] : [];
-  const weekDays = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  const weekDays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
   const calendarDays = generateCalendarDays();
 
   return (
@@ -300,38 +316,100 @@ export default function ModernCalendar({ type = 'gemeinde' }) {
 
         {viewMode === 'month' && (
           <>
-            <Grid container spacing={1} mb={1}>
-              {weekDays.map((day) => (
-                <Grid item xs={12 / 7} key={day}>
-                  <Typography align="center" fontWeight="bold" color={colors.secondary} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>{day}</Typography>
-                </Grid>
-              ))}
-            </Grid>
-            <Grid container spacing={1}>
-              {calendarDays.map((day, index) => {
-                const today = isToday(day);
-                const hasEvent = day && hasEvents(day);
-                const sunday = isSunday(day);
-                const holiday = isHoliday(day);
-                const showWeekNumber = index % 7 === 0 && day;
-                const weekNum = showWeekNumber ? getWeekNumber(day) : null;
-                const dateKey = formatDateKey(day);
-                const dayEvents = day ? events[dateKey] || [] : [];
-                const eventColor = dayEvents.length > 0 ? getEventColor(dayEvents[0]) : null;
+            {/* Kopfzeile mit KW und Wochentagen */}
+            <Box sx={{ display: 'flex', mb: 1, gap: 1 }}>
+              <Box sx={{ width: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography align="center" fontWeight="bold" color={colors.secondary} sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>KW</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', flex: 1, gap: 1 }}>
+                {weekDays.map((day) => (
+                  <Box key={day} sx={{ flex: 1, textAlign: 'center' }}>
+                    <Typography align="center" fontWeight="bold" color={colors.secondary} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>{day}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+            
+            {/* Kalender-Grid mit Wochen */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {(() => {
+                const weeks = [];
+                let currentWeek = [];
+                let weekNumber = null;
                 
-                return (
-                  <Grid item xs={12 / 7} key={index} sx={{ position: 'relative' }}>
-                    {showWeekNumber && <Box sx={{ position: 'absolute', top: -20, left: 0, fontSize: '0.7rem', color: 'text.secondary', fontWeight: 'bold' }}>KW{weekNum}</Box>}
-                    <Button onClick={() => handleDateClick(day)} disabled={!day} sx={{ width: '100%', height: { xs: 50, sm: 70, md: 90 }, borderRadius: 2, bgcolor: today ? colors.accent : holiday ? colors.feiertag : hasEvent ? eventColor : sunday ? colors.sundayBg : colors.cardBg, color: (today || hasEvent || holiday) ? 'white' : 'text.primary', fontSize: { xs: '0.875rem', sm: '1rem' }, fontWeight: today ? 'bold' : 'normal', transition: 'all 0.2s', border: selectedDate && day === selectedDate.getDate() ? `2px solid ${colors.primary}` : 'none', '&:hover': { bgcolor: today ? alpha(colors.accent, 0.8) : hasEvent ? alpha(eventColor, 0.8) : colors.hoverBg, transform: 'scale(1.05)' }, '&:disabled': { bgcolor: 'transparent' } }}>
-                      <Stack spacing={0.5} alignItems="center">
-                        <Typography>{day}</Typography>
-                        {dayEvents.length > 1 && <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>{dayEvents.length} Termine</Typography>}
-                      </Stack>
-                    </Button>
-                  </Grid>
-                );
-              })}
-            </Grid>
+                calendarDays.forEach((day, index) => {
+                  if (index % 7 === 0 && currentWeek.length > 0) {
+                    weeks.push({ weekNumber, days: currentWeek });
+                    currentWeek = [];
+                    weekNumber = null;
+                  }
+                  
+                  if (index % 7 === 0 && day) {
+                    weekNumber = getWeekNumber(day);
+                  }
+                  
+                  currentWeek.push(day);
+                });
+                
+                if (currentWeek.length > 0) {
+                  weeks.push({ weekNumber, days: currentWeek });
+                }
+                
+                return weeks.map((week, weekIndex) => (
+                  <Box key={weekIndex} sx={{ display: 'flex', gap: 1 }}>
+                    {/* KW-Spalte */}
+                    <Box sx={{ width: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(colors.secondary, 0.1), borderRadius: 1 }}>
+                      <Typography fontWeight="bold" color="text.secondary" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                        {week.weekNumber || ''}
+                      </Typography>
+                    </Box>
+                    
+                    {/* Tage der Woche */}
+                    <Box sx={{ display: 'flex', flex: 1, gap: 1 }}>
+                      {week.days.map((day, dayIndex) => {
+                        const today = isToday(day);
+                        const hasEvent = day && hasEvents(day);
+                        const sunday = isSunday(day);
+                        const holiday = isHoliday(day);
+                        const dateKey = formatDateKey(day);
+                        const dayEvents = day ? events[dateKey] || [] : [];
+                        const eventColor = dayEvents.length > 0 ? getEventColor(dayEvents[0]) : null;
+                        
+                        return (
+                          <Box key={dayIndex} sx={{ flex: 1 }}>
+                            <Button 
+                              onClick={() => handleDateClick(day)} 
+                              disabled={!day} 
+                              sx={{ 
+                                width: '100%', 
+                                height: { xs: 50, sm: 70, md: 90 }, 
+                                borderRadius: 2, 
+                                bgcolor: today ? colors.accent : holiday ? colors.feiertag : hasEvent ? eventColor : sunday ? colors.sundayBg : colors.cardBg, 
+                                color: (today || hasEvent || holiday) ? 'white' : 'text.primary', 
+                                fontSize: { xs: '0.875rem', sm: '1rem' }, 
+                                fontWeight: today ? 'bold' : 'normal', 
+                                transition: 'all 0.2s', 
+                                border: selectedDate && day === selectedDate.getDate() ? `2px solid ${colors.primary}` : 'none', 
+                                '&:hover': { 
+                                  bgcolor: today ? alpha(colors.accent, 0.8) : hasEvent ? alpha(eventColor, 0.8) : colors.hoverBg, 
+                                  transform: 'scale(1.05)' 
+                                }, 
+                                '&:disabled': { bgcolor: 'transparent' } 
+                              }}
+                            >
+                              <Stack spacing={0.5} alignItems="center">
+                                <Typography>{day}</Typography>
+                                {dayEvents.length > 1 && <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>{dayEvents.length} Termine</Typography>}
+                              </Stack>
+                            </Button>
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  </Box>
+                ));
+              })()}
+            </Box>
           </>
         )}
 
