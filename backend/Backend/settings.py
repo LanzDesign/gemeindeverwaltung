@@ -11,14 +11,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # --- SECURITY ---
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-# ACHTUNG: Ändere diesen Key, falls er öffentlich war!
+# ACHTUNG: ??ndere diesen Key, falls er ??ffentlich war!
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-lokaler-fallback-key-bitte-auf-render-setzen')
 
-# ALLOWED_HOSTS für lokale Docker-Entwicklung UND Production
+# ALLOWED_HOSTS f??r lokale Docker-Entwicklung UND Production
 ALLOWED_HOSTS = [
     'fecg-lahr-app.de',
     'www.fecg-lahr-app.de',
-    'fecg-lahr-app.de',
+    'fecg.technik-lanz.de',
     'localhost',
     '127.0.0.1',
     '87.106.75.150',  # Server IP
@@ -27,7 +27,7 @@ ALLOWED_HOSTS = [
     'nginx',    # Nginx proxy
 ]
 
-# Umgebungsvariable für Docker überschreiben
+# Umgebungsvariable f??r Docker ??berschreiben
 if os.environ.get('ALLOWED_HOSTS'):
     ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS').split(',')
 
@@ -35,8 +35,8 @@ if os.environ.get('ALLOWED_HOSTS'):
 # Verhindert Infinite-Redirects und CSRF-Fehler
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Cookies nur über HTTPS senden (nur in Production!)
-# Für lokale Entwicklung auf False setzen
+# Cookies nur ??ber HTTPS senden (nur in Production!)
+# F??r lokale Entwicklung auf False setzen
 SESSION_COOKIE_SECURE = False if DEBUG else True
 CSRF_COOKIE_SECURE = False if DEBUG else True
 
@@ -89,7 +89,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'Backend.wsgi.application'
 
 # --- DATABASE ---
-# Automatische Unterstützung für DATABASE_URL Umgebungsvariable
+# Automatische Unterst??tzung f??r DATABASE_URL Umgebungsvariable
 database_url = os.environ.get('DATABASE_URL')
 
 if database_url:
@@ -137,7 +137,7 @@ DECIMAL_SEPARATOR = ','
 # --- STATIC & MEDIA ---
 STATIC_URL = 'static/'
 STATIC_ROOT = '/var/www/AufnahmeGruppenFECG/Backend/static'
-# Whitenoise für effizientes Static File Serving
+# Whitenoise f??r effizientes Static File Serving
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
@@ -149,16 +149,16 @@ BACKUP_DIR = BASE_DIR / 'backups'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- CORS & CSRF ---
-# Da React auf derselben Domain läuft wie Django, brauchen wir theoretisch kein CORS.
-# Wir setzen die Trusted Origins für den CSRF-Check.
+# Da React auf derselben Domain l??uft wie Django, brauchen wir theoretisch kein CORS.
+# Wir setzen die Trusted Origins f??r den CSRF-Check.
 CSRF_TRUSTED_ORIGINS = [
-    'https://fecg-lahr-app.de',
+    'https://fecg.technik-lanz.de',
     'https://fecg-lahr-app.de',
     'https://www.fecg-lahr-app.de',
     'http://localhost:5173',
 ]
 
-# Wir erlauben JS den Zugriff auf den CSRF Token (für Axios/Fetch)
+# Wir erlauben JS den Zugriff auf den CSRF Token (f??r Axios/Fetch)
 CSRF_COOKIE_HTTPONLY = False 
 
 # --- REST FRAMEWORK ---R Produktions-Domain erlauben)
@@ -182,7 +182,9 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '5/minute',  # Max 5 Login-Versuche pro Minute
         'user': '100/hour'
-    }
+    },
+    'UNICODE_JSON': True,
+    'STRICT_JSON': False,
 }
 
 # --- LOGGING ---mework.parsers.JSONParser',-
@@ -205,7 +207,7 @@ LOGGING = {
 # Custom Locale
 LOCALE_PATHS = [BASE_DIR / 'Backend' / 'locale']
 
-# KRITISCH: CORS für Development UND Production
+# KRITISCH: CORS f??r Development UND Production
 CORS_ALLOWED_ORIGINS = [
     'https://fecg-lahr-app.de',
     'https://www.fecg-lahr-app.de',
@@ -217,12 +219,12 @@ CORS_ALLOWED_ORIGINS = [
     'http://nginx',               # Docker Nginx
 ]
 
-# Umgebungsvariable für Docker überschreiben
+# Umgebungsvariable f??r Docker ??berschreiben
 if os.environ.get('CORS_ALLOWED_ORIGINS'):
     CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS').split(',')
 
-# WICHTIG: Diese Zeile AUSKOMMENTIEREN oder LÖSCHEN!
-# CORS_ALLOW_ALL_ORIGINS = True  # ← GEFÄHRLICH in Produktion!
+# WICHTIG: Diese Zeile AUSKOMMENTIEREN oder L??SCHEN!
+# CORS_ALLOW_ALL_ORIGINS = True  # ??? GEF??HRLICH in Produktion!
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -253,7 +255,7 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
-# 3. Vertrauenswürdige Ursprünge für Formulare (CSRF-Fix)
+# 3. Vertrauensw??rdige Urspr??nge f??r Formulare (CSRF-Fix)
 # Hier MUSS das 'https://' davor stehen (seit Django 4.0)
 CSRF_TRUSTED_ORIGINS = [
     'https://fecg-lahr-app.de',

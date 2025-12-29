@@ -71,10 +71,15 @@ export default function ModernCalendar({ type = 'gemeinde' }) {
 
   const getEventColor = (event) => {
     if (!event) return colors.allgemein;
+    // Pr??fe auf Feiertag
     const holidays = getHolidays(new Date(event.datum).getFullYear());
     if (holidays[event.datum]) return colors.feiertag;
-    if (event.event_type === 'intern') return colors.intern;
-    if (event.event_type === 'extern') return colors.extern;
+    // Nutze die Farbe aus der API, falls vorhanden
+    if (event.farbe) return event.farbe;
+    // Fallback auf Kategorie-basierte Farben
+    if (event.kategorie === 'intern') return colors.intern;
+    if (event.kategorie === 'extern') return colors.extern;
+    if (event.kategorie === 'feiertag') return colors.feiertag;
     return colors.allgemein;
   };
 
@@ -191,7 +196,7 @@ export default function ModernCalendar({ type = 'gemeinde' }) {
     setEventDescription(event.beschreibung || '');
     setEventStartTime(event.startzeit);
     setEventEndTime(event.endzeit);
-    setEventType(event.event_type || 'allgemein');
+    setEventType(event.kategorie || 'allgemein');
     setOpenEventDialog(true);
   };
 
@@ -206,7 +211,8 @@ export default function ModernCalendar({ type = 'gemeinde' }) {
       const endpoint = type === 'gemeinde' ? 'gemeindetermine' : type === 'mitarbeiter' ? 'mitarbeitertermine' : 'raumbelegungen';
       const eventData = {
         titel: eventTitle, datum: formatDate(selectedDate), startzeit: eventStartTime,
-        endzeit: eventEndTime, beschreibung: eventDescription, event_type: eventType,
+        endzeit: eventEndTime, beschreibung: eventDescription, kategorie: eventType,
+        farbe: eventType === 'intern' ? '#f472b6' : eventType === 'extern' ? '#059669' : eventType === 'feiertag' ? '#dc2626' : '#ea580c',
       };
       if (type === 'mitarbeiter') { eventData.typ = 'termin'; eventData.person = 'Benutzer'; }
       else if (type === 'raum') { eventData.raum = 'Hauptraum'; }
