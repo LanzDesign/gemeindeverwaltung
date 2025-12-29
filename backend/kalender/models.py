@@ -112,7 +112,7 @@ class Mitarbeitereintrag(models.Model):
     ]
 
     mitarbeiter = models.ForeignKey(Mitarbeiter, on_delete=models.CASCADE, related_name='eintraege', null=True, blank=True)
-    person = models.CharField(max_length=200, help_text='Name falls kein Mitarbeiter-Profil')  # Fallback
+    person = models.CharField(max_length=200, blank=True, default='', help_text='Name falls kein Mitarbeiter-Profil')  # Fallback
     datum_start = models.DateField(help_text='Startdatum')
     datum_ende = models.DateField(help_text='Enddatum', null=True, blank=True)
     startzeit = models.TimeField(null=True, blank=True)
