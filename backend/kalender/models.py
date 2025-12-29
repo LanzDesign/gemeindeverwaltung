@@ -7,6 +7,7 @@ class KalenderKategorie(models.Model):
     """Zentrale Kategorie-Verwaltung für alle Kalender"""
     name = models.CharField(max_length=50, unique=True)
     bezeichnung = models.CharField(max_length=100)
+    abkuerzung = models.CharField(max_length=10, default='', blank=True, help_text='Abkürzung für Anzeige (z.B. F, U, K)')
     farbe = models.CharField(max_length=7, help_text='Hex-Farbcode (z.B. #ea580c)')
     aktiv = models.BooleanField(default=True)
     sortierung = models.IntegerField(default=0)
@@ -20,6 +21,34 @@ class KalenderKategorie(models.Model):
 
     def __str__(self):
         return f"{self.bezeichnung} ({self.name})"
+
+
+class Mitarbeiter(models.Model):
+    """Mitarbeiter mit Urlaubsverwaltung"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='mitarbeiter_profil')
+    vorname = models.CharField(max_length=100)
+    nachname = models.CharField(max_length=100)
+    urlaubstage_gesamt = models.IntegerField(default=30, help_text='Gesamte Urlaubstage pro Jahr')
+    urlaubstage_genommen = models.IntegerField(default=0, help_text='Bereits genommene Urlaubstage')
+    aktiv = models.BooleanField(default=True)
+    erstellt_am = models.DateTimeField(auto_now_add=True)
+    aktualisiert_am = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['nachname', 'vorname']
+        verbose_name = "Mitarbeiter"
+        verbose_name_plural = "Mitarbeiter"
+
+    def __str__(self):
+        return f"{self.vorname} {self.nachname}"
+
+    @property
+    def urlaubstage_verfuegbar(self):
+        return self.urlaubstage_gesamt - self.urlaubstage_genommen
+
+    @property
+    def vollstaendiger_name(self):
+        return f"{self.vorname} {self.nachname}"
 
 
 class Gemeindetermin(models.Model):
@@ -57,34 +86,48 @@ class Mitarbeitereintrag(models.Model):
         ('termin', 'Termin'),
         ('krankheit', 'Krankheit'),
         ('urlaub', 'Urlaub'),
-    ]
-    
-    KATEGORIE_CHOICES = [
-        ('intern', 'Intern'),
+        ('leitung', 'Leitung'),
         ('extern', 'Extern'),
-        ('allgemein', 'Allgemein'),
+        ('unentschuldigt', 'Unentschuldigt'),
     ]
 
-    person = models.CharField(max_length=200)
-    datum = models.DateField()
-    startzeit = models.TimeField()
-    endzeit = models.TimeField()
+    mitarbeiter = models.ForeignKey(Mitarbeiter, on_delete=models.CASCADE, related_name='eintraege', null=True, blank=True)
+    person = models.CharField(max_length=200, help_text='Name falls kein Mitarbeiter-Profil')  # Fallback
+    datum_start = models.DateField(help_text='Startdatum')
+    datum_ende = models.DateField(help_text='Enddatum', null=True, blank=True)
+    startzeit = models.TimeField(null=True, blank=True)
+    endzeit = models.TimeField(null=True, blank=True)
+    ganztaegig = models.BooleanField(default=False)
     typ = models.CharField(max_length=20, choices=TYP_CHOICES, default='termin')
     titel = models.CharField(max_length=200)
     beschreibung = models.TextField(blank=True)
-    kategorie = models.CharField(max_length=20, choices=KATEGORIE_CHOICES, default='allgemein')
-    farbe = models.CharField(max_length=7, default='#ea580c', help_text='Hex-Farbcode (z.B. #ea580c)')
+    kategorie = models.ForeignKey(KalenderKategorie, on_delete=models.SET_NULL, null=True, blank=True, related_name='mitarbeiter_eintraege')
     erstellt_am = models.DateTimeField(auto_now_add=True)
     aktualisiert_am = models.DateTimeField(auto_now=True)
     erstellt_von = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     class Meta:
-        ordering = ['-datum', 'startzeit']
+        ordering = ['-datum_start', 'startzeit']
         verbose_name = "Mitarbeitereintrag"
-        verbose_name_plural = "Mitarbeitereintr??ge"
+        verbose_name_plural = "Mitarbeitereinträge"
 
     def __str__(self):
-        return f"{self.person} - {self.typ} ({self.datum})"
+        name = self.mitarbeiter.vollstaendiger_name if self.mitarbeiter else self.person
+        if self.datum_ende and self.datum_ende != self.datum_start:
+            return f"{name} - {self.typ} ({self.datum_start} bis {self.datum_ende})"
+        return f"{name} - {self.typ} ({self.datum_start})"
+
+    @property
+    def dauer_tage(self):
+        """Berechnet die Anzahl der Tage"""
+        if self.datum_ende and self.datum_ende != self.datum_start:
+            return (self.datum_ende - self.datum_start).days + 1
+        return 1
+
+    # Backward compatibility properties
+    @property
+    def datum(self):
+        return self.datum_start
 
 
 class Raumbelegung(models.Model):

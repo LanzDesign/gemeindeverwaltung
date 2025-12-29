@@ -1,6 +1,13 @@
 from rest_framework import viewsets, permissions
-from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, KalenderKategorie
-from .serializers import GemeindeterminSerializer, MitarbeitereintraginSerializer, RaumbelegungSerializer, KalenderKategorieSerializer
+from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, KalenderKategorie, Mitarbeiter
+from .serializers import GemeindeterminSerializer, MitarbeitereintraginSerializer, RaumbelegungSerializer, KalenderKategorieSerializer, MitarbeiterSerializer
+
+
+class MitarbeiterViewSet(viewsets.ModelViewSet):
+    """ViewSet für Mitarbeiter"""
+    queryset = Mitarbeiter.objects.filter(aktiv=True)
+    serializer_class = MitarbeiterSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 
 class KalenderKategorieViewSet(viewsets.ReadOnlyModelViewSet):

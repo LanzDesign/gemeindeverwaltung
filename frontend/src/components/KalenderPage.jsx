@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import ModernCalendar from "../calendar/calendar";
+import MitarbeiterKalenderView from "./MitarbeiterKalenderView";
 
 // Tab Panel Component
 function TabPanel(props) {
@@ -138,7 +139,7 @@ export default function KalenderPage() {
               <CircularProgress />
             </Box>
           ) : (
-            <ModernCalendar type="mitarbeiter" />
+            <MitarbeiterKalenderView />
           )}
         </TabPanel>
 
