@@ -339,6 +339,10 @@ export default function ModernCalendar({ type = 'gemeinde' }) {
                 
                 calendarDays.forEach((day, index) => {
                   if (index % 7 === 0 && currentWeek.length > 0) {
+                    // Fülle die Woche mit null-Werten auf 7 Tage auf
+                    while (currentWeek.length < 7) {
+                      currentWeek.push(null);
+                    }
                     weeks.push({ weekNumber, days: currentWeek });
                     currentWeek = [];
                     weekNumber = null;
@@ -352,6 +356,10 @@ export default function ModernCalendar({ type = 'gemeinde' }) {
                 });
                 
                 if (currentWeek.length > 0) {
+                  // Fülle die letzte Woche auch mit null-Werten auf 7 Tage auf
+                  while (currentWeek.length < 7) {
+                    currentWeek.push(null);
+                  }
                   weeks.push({ weekNumber, days: currentWeek });
                 }
                 
