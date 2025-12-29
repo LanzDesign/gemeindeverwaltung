@@ -41,7 +41,7 @@ class MitarbeitereintraginSerializer(serializers.ModelSerializer):
     class Meta:
         model = Mitarbeitereintrag
         fields = ['id', 'mitarbeiter', 'mitarbeiter_name', 'person', 'datum_start', 'datum_ende', 
-                  'startzeit', 'endzeit', 'ganztaegig', 'typ', 'titel', 'beschreibung', 
+                  'startzeit', 'endzeit', 'ganztaegig', 'halbtags', 'typ', 'titel', 'beschreibung', 
                   'kategorie', 'kategorie_detail', 'dauer_tage', 'datum', 'erstellt_am', 'aktualisiert_am']
         read_only_fields = ['erstellt_am', 'aktualisiert_am']
 

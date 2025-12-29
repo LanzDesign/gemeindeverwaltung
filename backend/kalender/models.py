@@ -118,6 +118,7 @@ class Mitarbeitereintrag(models.Model):
     startzeit = models.TimeField(null=True, blank=True)
     endzeit = models.TimeField(null=True, blank=True)
     ganztaegig = models.BooleanField(default=False)
+    halbtags = models.BooleanField(default=False, help_text='Halber Tag (z.B. Vormittag oder Nachmittag)')
     typ = models.CharField(max_length=20, choices=TYP_CHOICES, default='termin')
     titel = models.CharField(max_length=200)
     beschreibung = models.TextField(blank=True)
@@ -141,8 +142,40 @@ class Mitarbeitereintrag(models.Model):
     def dauer_tage(self):
         """Berechnet die Anzahl der Tage"""
         if self.datum_ende and self.datum_ende != self.datum_start:
-            return (self.datum_ende - self.datum_start).days + 1
-        return 1
+            tage = (self.datum_ende - self.datum_start).days + 1
+            if self.halbtags:
+                return tage * 0.5
+            return tage
+        return 0.5 if self.halbtags else 1
+
+    def save(self, *args, **kwargs):
+        """Berechne Urlaubstage automatisch"""
+        # Prüfe, ob es ein Urlaub-Eintrag ist
+        is_new = self.pk is None
+        if not is_new:
+            # Hole alte Version für Vergleich
+            try:
+                old = Mitarbeitereintrag.objects.get(pk=self.pk)
+                # Ziehe alte Urlaubstage ab wenn sich was ändert
+                if old.typ == 'urlaub' and old.mitarbeiter:
+                    old.mitarbeiter.urlaubstage_genommen -= old.dauer_tage
+                    old.mitarbeiter.save()
+            except Mitarbeitereintrag.DoesNotExist:
+                pass
+        
+        super().save(*args, **kwargs)
+        
+        # Füge neue Urlaubstage hinzu
+        if self.typ == 'urlaub' and self.mitarbeiter:
+            self.mitarbeiter.urlaubstage_genommen += self.dauer_tage
+            self.mitarbeiter.save()
+    
+    def delete(self, *args, **kwargs):
+        """Ziehe Urlaubstage ab beim Löschen"""
+        if self.typ == 'urlaub' and self.mitarbeiter:
+            self.mitarbeiter.urlaubstage_genommen -= self.dauer_tage
+            self.mitarbeiter.save()
+        super().delete(*args, **kwargs)
 
     # Backward compatibility properties
     @property

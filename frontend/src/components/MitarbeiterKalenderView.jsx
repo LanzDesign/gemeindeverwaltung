@@ -70,6 +70,7 @@ export default function MitarbeiterKalenderView() {
     startzeit: "09:00",
     endzeit: "17:00",
     ganztaegig: false,
+    halbtags: false,
     beschreibung: "",
     kategorie: null,
   });
@@ -181,6 +182,7 @@ export default function MitarbeiterKalenderView() {
       startzeit: entry.startzeit || "09:00",
       endzeit: entry.endzeit || "17:00",
       ganztaegig: entry.ganztaegig || false,
+      halbtags: entry.halbtags || false,
       beschreibung: entry.beschreibung || "",
       kategorie: entry.kategorie,
     });
@@ -268,11 +270,13 @@ export default function MitarbeiterKalenderView() {
             const kat = kategorien.find((k) => k.id === entry.kategorie);
             const color = kat?.farbe || "#6b7280";
             const abk = kat?.abkuerzung || "?";
+            const isHalbtags = entry.halbtags;
+            const isGanztags = entry.ganztaegig;
 
             return (
               <Tooltip
                 key={idx}
-                title={`${entry.titel} (${entry.datum_start}${
+                title={`${entry.titel}${isHalbtags ? ' (halbtags)' : isGanztags ? ' (ganztags)' : ''} (${entry.datum_start}${
                   entry.datum_ende && entry.datum_ende !== entry.datum_start
                     ? " - " + entry.datum_ende
                     : ""
@@ -296,6 +300,10 @@ export default function MitarbeiterKalenderView() {
                     textAlign: "center",
                     lineHeight: 1.2,
                     cursor: "pointer",
+                    width: isHalbtags ? "50%" : isGanztags ? "100%" : "auto",
+                    backgroundImage: isHalbtags 
+                      ? `linear-gradient(to right, ${color} 50%, transparent 50%)`
+                      : "none",
                     "&:hover": {
                       opacity: 0.8,
                     },
@@ -553,19 +561,42 @@ export default function MitarbeiterKalenderView() {
               />
             </Stack>
 
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.ganztaegig}
-                  onChange={(e) =>
-                    setFormData({ ...formData, ganztaegig: e.target.checked })
-                  }
-                />
-              }
-              label="Ganztägig"
-            />
+            <Stack direction="row" spacing={2}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.ganztaegig}
+                    onChange={(e) => {
+                      const isChecked = e.target.checked;
+                      setFormData({ 
+                        ...formData, 
+                        ganztaegig: isChecked,
+                        halbtags: isChecked ? false : formData.halbtags
+                      });
+                    }}
+                  />
+                }
+                label="Ganztägig"
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.halbtags}
+                    onChange={(e) => {
+                      const isChecked = e.target.checked;
+                      setFormData({ 
+                        ...formData, 
+                        halbtags: isChecked,
+                        ganztaegig: isChecked ? false : formData.ganztaegig
+                      });
+                    }}
+                  />
+                }
+                label="Halbtags"
+              />
+            </Stack>
 
-            {!formData.ganztaegig && (
+            {!formData.ganztaegig && !formData.halbtags && (
               <Stack direction="row" spacing={2}>
                 <TextField
                   label="Startzeit"

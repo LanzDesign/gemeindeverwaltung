@@ -65,7 +65,7 @@ class MitarbeitereintraginAdmin(admin.ModelAdmin):
     list_filter = ['datum_start', 'typ', 'mitarbeiter', 'erstellt_am']
     search_fields = ['person', 'titel', 'beschreibung', 'mitarbeiter__vorname', 'mitarbeiter__nachname']
     ordering = ['-datum_start']
-    fields = ['mitarbeiter', 'person', 'datum_start', 'datum_ende', 'ganztaegig', 'startzeit', 'endzeit', 'typ', 'titel', 'kategorie', 'beschreibung', 'erstellt_von']
+    fields = ['mitarbeiter', 'person', 'datum_start', 'datum_ende', 'ganztaegig', 'halbtags', 'startzeit', 'endzeit', 'typ', 'titel', 'kategorie', 'beschreibung', 'erstellt_von']
     
     def mitarbeiter_oder_person(self, obj):
         return str(obj.mitarbeiter) if obj.mitarbeiter else obj.person
