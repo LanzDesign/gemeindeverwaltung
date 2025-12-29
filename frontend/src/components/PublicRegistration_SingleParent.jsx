@@ -323,7 +323,7 @@ function PublicRegistration() {
       formData.append("children", JSON.stringify(children));
 
       const response = await axios.post(
-        "https://api.fecg-lahr-app.de/public/register/",
+        "https://api.fecg-lahr-app.de/api/public/register/",
         formData,
         {
           headers: {
