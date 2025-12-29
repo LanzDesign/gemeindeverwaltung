@@ -23,6 +23,26 @@ class KalenderKategorie(models.Model):
         return f"{self.bezeichnung} ({self.name})"
 
 
+class MitarbeiterKategorie(models.Model):
+    """Kategorie-Verwaltung für Mitarbeiterkalender (getrennt von Gemeindekalender)"""
+    name = models.CharField(max_length=50, unique=True)
+    bezeichnung = models.CharField(max_length=100)
+    abkuerzung = models.CharField(max_length=10, default='', blank=True, help_text='Abkürzung für Anzeige (z.B. F, U, K)')
+    farbe = models.CharField(max_length=7, help_text='Hex-Farbcode (z.B. #ea580c)')
+    aktiv = models.BooleanField(default=True)
+    sortierung = models.IntegerField(default=0)
+    erstellt_am = models.DateTimeField(auto_now_add=True)
+    aktualisiert_am = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sortierung', 'name']
+        verbose_name = "Mitarbeiter-Kategorie"
+        verbose_name_plural = "Mitarbeiter-Kategorien"
+
+    def __str__(self):
+        return f"{self.bezeichnung} ({self.name})"
+
+
 class Mitarbeiter(models.Model):
     """Mitarbeiter mit Urlaubsverwaltung"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='mitarbeiter_profil')
@@ -101,7 +121,7 @@ class Mitarbeitereintrag(models.Model):
     typ = models.CharField(max_length=20, choices=TYP_CHOICES, default='termin')
     titel = models.CharField(max_length=200)
     beschreibung = models.TextField(blank=True)
-    kategorie = models.ForeignKey(KalenderKategorie, on_delete=models.SET_NULL, null=True, blank=True, related_name='mitarbeiter_eintraege')
+    kategorie = models.ForeignKey(MitarbeiterKategorie, on_delete=models.SET_NULL, null=True, blank=True, related_name='mitarbeiter_eintraege')
     erstellt_am = models.DateTimeField(auto_now_add=True)
     aktualisiert_am = models.DateTimeField(auto_now=True)
     erstellt_von = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)

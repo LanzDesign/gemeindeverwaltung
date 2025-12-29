@@ -33,8 +33,18 @@ import PrintIcon from "@mui/icons-material/Print";
 import axiosInstance from "../api/axios";
 
 const MONTH_NAMES = [
-  "Januar", "Februar", "März", "April", "Mai", "Juni",
-  "Juli", "August", "September", "Oktober", "November", "Dezember",
+  "Januar",
+  "Februar",
+  "März",
+  "April",
+  "Mai",
+  "Juni",
+  "Juli",
+  "August",
+  "September",
+  "Oktober",
+  "November",
+  "Dezember",
 ];
 
 const DAY_NAMES_MONDAY_START = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -72,13 +82,14 @@ export default function MitarbeiterKalenderView() {
     try {
       const jahr = currentDate.getFullYear();
       const monat = currentDate.getMonth() + 1;
-      
-      const [mitarbeiterRes, eintraegeRes, kategorienRes, feiertageRes] = await Promise.all([
-        axiosInstance.get("/mitarbeiter/"),
-        axiosInstance.get("/mitarbeitertermine/"),
-        axiosInstance.get("/kategorien/"),
-        axiosInstance.get(`/feiertage/?jahr=${jahr}&monat=${monat}`),
-      ]);
+
+      const [mitarbeiterRes, eintraegeRes, kategorienRes, feiertageRes] =
+        await Promise.all([
+          axiosInstance.get("/mitarbeiter/"),
+          axiosInstance.get("/mitarbeitertermine/"),
+          axiosInstance.get("/kategorien/"),
+          axiosInstance.get(`/feiertage/?jahr=${jahr}&monat=${monat}`),
+        ]);
       setMitarbeiter(mitarbeiterRes.data);
       setEintraege(eintraegeRes.data);
       setKategorien(kategorienRes.data);
@@ -100,10 +111,10 @@ export default function MitarbeiterKalenderView() {
       const dayOfWeek = date.getDay();
       const weekdayMondayStart = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       const dateString = date.toISOString().split("T")[0];
-      
+
       // Feiertag prüfen
-      const feiertag = feiertage.find(ft => ft.datum === dateString);
-      
+      const feiertag = feiertage.find((ft) => ft.datum === dateString);
+
       days.push({
         day: d,
         weekday: dayOfWeek,
@@ -121,22 +132,26 @@ export default function MitarbeiterKalenderView() {
   const getEntriesForDay = (mitarbeiterId, dateString) => {
     return eintraege.filter((entry) => {
       const matchesMitarbeiter = entry.mitarbeiter === mitarbeiterId;
-      
+
       // Prüfe ob Datum im Bereich liegt
       const entryStart = entry.datum_start;
       const entryEnd = entry.datum_ende || entry.datum_start;
       const inRange = dateString >= entryStart && dateString <= entryEnd;
-      
+
       return matchesMitarbeiter && inRange;
     });
   };
 
   const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    setCurrentDate(
+      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+    );
   };
 
   const handleNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    setCurrentDate(
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+    );
   };
 
   const handleToday = () => {
@@ -180,7 +195,10 @@ export default function MitarbeiterKalenderView() {
       };
 
       if (editingEntry) {
-        await axiosInstance.put(`/mitarbeitertermine/${editingEntry.id}/`, payload);
+        await axiosInstance.put(
+          `/mitarbeitertermine/${editingEntry.id}/`,
+          payload
+        );
       } else {
         await axiosInstance.post("/mitarbeitertermine/", payload);
       }
@@ -209,7 +227,7 @@ export default function MitarbeiterKalenderView() {
   const renderCell = (mitarbeiterId, dayInfo) => {
     const entries = getEntriesForDay(mitarbeiterId, dayInfo.dateString);
     const isFeiertag = !!dayInfo.feiertag;
-    
+
     return (
       <TableCell
         key={dayInfo.day}
@@ -220,7 +238,11 @@ export default function MitarbeiterKalenderView() {
           maxWidth: isMobile ? 28 : 35,
           width: isMobile ? 28 : 35,
           padding: "2px",
-          backgroundColor: isFeiertag ? "#fee2e2" : (dayInfo.isWeekend ? "#f5f5f5" : "white"),
+          backgroundColor: isFeiertag
+            ? "#fee2e2"
+            : dayInfo.isWeekend
+            ? "#f5f5f5"
+            : "white",
           borderRight: "1px solid #ddd",
           borderBottom: "1px solid #ddd",
           cursor: "pointer",
@@ -243,14 +265,18 @@ export default function MitarbeiterKalenderView() {
           }}
         >
           {entries.map((entry, idx) => {
-            const kat = kategorien.find(k => k.id === entry.kategorie);
+            const kat = kategorien.find((k) => k.id === entry.kategorie);
             const color = kat?.farbe || "#6b7280";
             const abk = kat?.abkuerzung || "?";
-            
+
             return (
               <Tooltip
                 key={idx}
-                title={`${entry.titel} (${entry.datum_start}${entry.datum_ende && entry.datum_ende !== entry.datum_start ? ' - ' + entry.datum_ende : ''})`}
+                title={`${entry.titel} (${entry.datum_start}${
+                  entry.datum_ende && entry.datum_ende !== entry.datum_start
+                    ? " - " + entry.datum_ende
+                    : ""
+                })`}
                 arrow
                 placement="top"
               >
@@ -296,13 +322,22 @@ export default function MitarbeiterKalenderView() {
         sx={{ mb: 2 }}
       >
         <Stack direction="row" spacing={1} alignItems="center">
-          <IconButton onClick={handlePrevMonth} size={isMobile ? "small" : "medium"}>
+          <IconButton
+            onClick={handlePrevMonth}
+            size={isMobile ? "small" : "medium"}
+          >
             <ChevronLeftIcon />
           </IconButton>
-          <Typography variant={isMobile ? "h6" : "h5"} sx={{ minWidth: 180, textAlign: "center" }}>
+          <Typography
+            variant={isMobile ? "h6" : "h5"}
+            sx={{ minWidth: 180, textAlign: "center" }}
+          >
             {MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}
           </Typography>
-          <IconButton onClick={handleNextMonth} size={isMobile ? "small" : "medium"}>
+          <IconButton
+            onClick={handleNextMonth}
+            size={isMobile ? "small" : "medium"}
+          >
             <ChevronRightIcon />
           </IconButton>
         </Stack>
@@ -310,7 +345,12 @@ export default function MitarbeiterKalenderView() {
           <Button onClick={handleToday} size="small" variant="outlined">
             Heute
           </Button>
-          <Button onClick={handlePrint} size="small" variant="outlined" startIcon={<PrintIcon />}>
+          <Button
+            onClick={handlePrint}
+            size="small"
+            variant="outlined"
+            startIcon={<PrintIcon />}
+          >
             Drucken
           </Button>
         </Stack>
@@ -376,7 +416,11 @@ export default function MitarbeiterKalenderView() {
                     maxWidth: isMobile ? 28 : 35,
                     width: isMobile ? 28 : 35,
                     padding: "4px 2px",
-                    backgroundColor: dayInfo.feiertag ? "#dc2626" : (dayInfo.isWeekend ? "#e0e0e0" : "#5b9bd5"),
+                    backgroundColor: dayInfo.feiertag
+                      ? "#dc2626"
+                      : dayInfo.isWeekend
+                      ? "#e0e0e0"
+                      : "#5b9bd5",
                     color: "white",
                     fontWeight: "bold",
                     fontSize: isMobile ? "10px" : "11px",
@@ -384,11 +428,16 @@ export default function MitarbeiterKalenderView() {
                     borderBottom: "2px solid #ddd",
                   }}
                 >
-                  <Tooltip title={dayInfo.feiertag ? dayInfo.feiertag.name : ""} arrow>
+                  <Tooltip
+                    title={dayInfo.feiertag ? dayInfo.feiertag.name : ""}
+                    arrow
+                  >
                     <div>
                       <div>{dayInfo.day}</div>
                       <div style={{ fontSize: isMobile ? "8px" : "9px" }}>
-                        {dayInfo.feiertag ? "F" : DAY_NAMES_MONDAY_START[dayInfo.weekdayMondayStart]}
+                        {dayInfo.feiertag
+                          ? "F"
+                          : DAY_NAMES_MONDAY_START[dayInfo.weekdayMondayStart]}
                       </div>
                     </div>
                   </Tooltip>
@@ -399,7 +448,11 @@ export default function MitarbeiterKalenderView() {
           <TableBody>
             {mitarbeiter.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={daysInMonth.length + 1} align="center" sx={{ py: 4 }}>
+                <TableCell
+                  colSpan={daysInMonth.length + 1}
+                  align="center"
+                  sx={{ py: 4 }}
+                >
                   <Typography color="text.secondary">
                     Keine Mitarbeiter vorhanden
                   </Typography>
@@ -423,7 +476,8 @@ export default function MitarbeiterKalenderView() {
                   >
                     <div>{ma.vollstaendiger_name}</div>
                     <Typography variant="caption" color="text.secondary">
-                      Urlaub: {ma.urlaubstage_verfuegbar}/{ma.urlaubstage_gesamt}
+                      Urlaub: {ma.urlaubstage_verfuegbar}/
+                      {ma.urlaubstage_gesamt}
                     </Typography>
                   </TableCell>
                   {daysInMonth.map((dayInfo) => renderCell(ma.id, dayInfo))}
@@ -435,7 +489,12 @@ export default function MitarbeiterKalenderView() {
       </TableContainer>
 
       {/* Dialog für Termin-Erstellung/Bearbeitung */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>
           {editingEntry ? "Eintrag bearbeiten" : "Neuer Eintrag"}
         </DialogTitle>
@@ -445,7 +504,9 @@ export default function MitarbeiterKalenderView() {
               select
               label="Typ"
               value={formData.typ}
-              onChange={(e) => setFormData({ ...formData, typ: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, typ: e.target.value })
+              }
               fullWidth
             >
               <MenuItem value="termin">Termin</MenuItem>
@@ -459,7 +520,9 @@ export default function MitarbeiterKalenderView() {
             <TextField
               label="Titel"
               value={formData.titel}
-              onChange={(e) => setFormData({ ...formData, titel: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, titel: e.target.value })
+              }
               fullWidth
             />
 
@@ -468,7 +531,9 @@ export default function MitarbeiterKalenderView() {
                 label="Von"
                 type="date"
                 value={formData.datum_start}
-                onChange={(e) => setFormData({ ...formData, datum_start: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, datum_start: e.target.value })
+                }
                 fullWidth
                 InputLabelProps={{ shrink: true }}
               />
@@ -476,7 +541,9 @@ export default function MitarbeiterKalenderView() {
                 label="Bis"
                 type="date"
                 value={formData.datum_ende}
-                onChange={(e) => setFormData({ ...formData, datum_ende: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, datum_ende: e.target.value })
+                }
                 fullWidth
                 InputLabelProps={{ shrink: true }}
               />
@@ -486,7 +553,9 @@ export default function MitarbeiterKalenderView() {
               control={
                 <Checkbox
                   checked={formData.ganztaegig}
-                  onChange={(e) => setFormData({ ...formData, ganztaegig: e.target.checked })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, ganztaegig: e.target.checked })
+                  }
                 />
               }
               label="Ganztägig"
@@ -498,7 +567,9 @@ export default function MitarbeiterKalenderView() {
                   label="Startzeit"
                   type="time"
                   value={formData.startzeit}
-                  onChange={(e) => setFormData({ ...formData, startzeit: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, startzeit: e.target.value })
+                  }
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                 />
@@ -506,7 +577,9 @@ export default function MitarbeiterKalenderView() {
                   label="Endzeit"
                   type="time"
                   value={formData.endzeit}
-                  onChange={(e) => setFormData({ ...formData, endzeit: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, endzeit: e.target.value })
+                  }
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                 />
@@ -517,7 +590,9 @@ export default function MitarbeiterKalenderView() {
               select
               label="Kategorie"
               value={formData.kategorie || ""}
-              onChange={(e) => setFormData({ ...formData, kategorie: e.target.value || null })}
+              onChange={(e) =>
+                setFormData({ ...formData, kategorie: e.target.value || null })
+              }
               fullWidth
             >
               <MenuItem value="">Keine</MenuItem>
@@ -531,7 +606,9 @@ export default function MitarbeiterKalenderView() {
             <TextField
               label="Beschreibung"
               value={formData.beschreibung}
-              onChange={(e) => setFormData({ ...formData, beschreibung: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, beschreibung: e.target.value })
+              }
               fullWidth
               multiline
               rows={3}
@@ -540,7 +617,10 @@ export default function MitarbeiterKalenderView() {
         </DialogContent>
         <DialogActions>
           {editingEntry && (
-            <Button onClick={() => handleDeleteEntry(editingEntry.id)} color="error">
+            <Button
+              onClick={() => handleDeleteEntry(editingEntry.id)}
+              color="error"
+            >
               Löschen
             </Button>
           )}

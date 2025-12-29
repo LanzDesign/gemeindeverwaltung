@@ -1,8 +1,8 @@
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, KalenderKategorie, Mitarbeiter
-from .serializers import GemeindeterminSerializer, MitarbeitereintraginSerializer, RaumbelegungSerializer, KalenderKategorieSerializer, MitarbeiterSerializer
+from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, KalenderKategorie, MitarbeiterKategorie, Mitarbeiter
+from .serializers import GemeindeterminSerializer, MitarbeitereintraginSerializer, RaumbelegungSerializer, KalenderKategorieSerializer, MitarbeiterKategorieSerializer, MitarbeiterSerializer
 from .services import FeiertagService
 
 
@@ -43,6 +43,13 @@ class KalenderKategorieViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet für Kalender-Kategorien (nur lesen)"""
     queryset = KalenderKategorie.objects.filter(aktiv=True)
     serializer_class = KalenderKategorieSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+class MitarbeiterKategorieViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet für Mitarbeiter-Kategorien (nur lesen)"""
+    queryset = MitarbeiterKategorie.objects.filter(aktiv=True)
+    serializer_class = MitarbeiterKategorieSerializer
     permission_classes = [permissions.AllowAny]
 
 

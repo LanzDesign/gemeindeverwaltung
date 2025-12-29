@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, KalenderKategorie, Mitarbeiter
+from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, KalenderKategorie, MitarbeiterKategorie, Mitarbeiter
 
 
 @admin.register(Mitarbeiter)
@@ -17,6 +17,21 @@ class MitarbeiterAdmin(admin.ModelAdmin):
 
 @admin.register(KalenderKategorie)
 class KalenderKategorieAdmin(admin.ModelAdmin):
+    list_display = ['bezeichnung', 'name', 'abkuerzung', 'farbe_anzeigen', 'aktiv', 'sortierung']
+    list_filter = ['aktiv']
+    search_fields = ['name', 'bezeichnung']
+    ordering = ['sortierung', 'name']
+    fields = ['name', 'bezeichnung', 'abkuerzung', 'farbe', 'aktiv', 'sortierung']
+    
+    def farbe_anzeigen(self, obj):
+        abk = f" [{obj.abkuerzung}]" if obj.abkuerzung else ""
+        return f'<span style="background-color:{obj.farbe}; padding:5px 15px; border-radius:5px; color:white; font-weight:bold;">{obj.farbe}{abk}</span>'
+    farbe_anzeigen.short_description = 'Farbe'
+    farbe_anzeigen.allow_tags = True
+
+
+@admin.register(MitarbeiterKategorie)
+class MitarbeiterKategorieAdmin(admin.ModelAdmin):
     list_display = ['bezeichnung', 'name', 'abkuerzung', 'farbe_anzeigen', 'aktiv', 'sortierung']
     list_filter = ['aktiv']
     search_fields = ['name', 'bezeichnung']

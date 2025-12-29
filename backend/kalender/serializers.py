@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, KalenderKategorie, Mitarbeiter
+from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, KalenderKategorie, MitarbeiterKategorie, Mitarbeiter
 
 
 class MitarbeiterSerializer(serializers.ModelSerializer):
@@ -19,6 +19,12 @@ class KalenderKategorieSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'bezeichnung', 'abkuerzung', 'farbe', 'aktiv', 'sortierung']
 
 
+class MitarbeiterKategorieSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MitarbeiterKategorie
+        fields = ['id', 'name', 'bezeichnung', 'abkuerzung', 'farbe', 'aktiv', 'sortierung']
+
+
 class GemeindeterminSerializer(serializers.ModelSerializer):
     class Meta:
         model = Gemeindetermin
@@ -28,7 +34,7 @@ class GemeindeterminSerializer(serializers.ModelSerializer):
 
 class MitarbeitereintraginSerializer(serializers.ModelSerializer):
     mitarbeiter_name = serializers.CharField(source='mitarbeiter.vollstaendiger_name', read_only=True)
-    kategorie_detail = KalenderKategorieSerializer(source='kategorie', read_only=True)
+    kategorie_detail = MitarbeiterKategorieSerializer(source='kategorie', read_only=True)
     dauer_tage = serializers.ReadOnlyField()
     datum = serializers.ReadOnlyField()  # Backward compatibility
     
