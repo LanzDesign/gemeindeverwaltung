@@ -33,6 +33,29 @@ def update_kategorien(apps, schema_editor):
         )
 
 
+def migrate_mitarbeiter_kategorien(apps, schema_editor):
+    """Migriere bestehende String-Kategorien zu ForeignKeys"""
+    Mitarbeitereintrag = apps.get_model('kalender', 'Mitarbeitereintrag')
+    KalenderKategorie = apps.get_model('kalender', 'KalenderKategorie')
+    
+    # Mapping von alten String-Werten zu Kategorie-Namen
+    kategorie_mapping = {
+        'intern': 'intern',
+        'extern': 'extern',
+        'allgemein': 'allgemein',
+    }
+    
+    for eintrag in Mitarbeitereintrag.objects.all():
+        if hasattr(eintrag, 'kategorie_alt') and eintrag.kategorie_alt:
+            kategorie_name = kategorie_mapping.get(eintrag.kategorie_alt, 'allgemein')
+            try:
+                kategorie_obj = KalenderKategorie.objects.get(name=kategorie_name)
+                eintrag.kategorie_fk = kategorie_obj
+                eintrag.save()
+            except KalenderKategorie.DoesNotExist:
+                pass
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -67,6 +90,45 @@ class Migration(migrations.Migration):
             model_name='kalenderkategorie',
             name='abkuerzung',
             field=models.CharField(blank=True, default='', help_text='Abkürzung für Anzeige (z.B. F, U, K)', max_length=10),
+        ),
+        
+        # Kategorien aktualisieren
+        migrations.RunPython(update_kategorien, migrations.RunPython.noop),
+        
+        # Mitarbeitereintrag: Alte Kategorie umbenennen
+        migrations.RenameField(
+            model_name='mitarbeitereintrag',
+            old_name='kategorie',
+            new_name='kategorie_alt',
+        ),
+        
+        # Neue ForeignKey Kategorie hinzufügen
+        migrations.AddField(
+            model_name='mitarbeitereintrag',
+            name='kategorie_fk',
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='mitarbeiter_eintraege_temp', to='kalender.kalenderkategorie'),
+        ),
+        
+        # Daten migrieren
+        migrations.RunPython(migrate_mitarbeiter_kategorien, migrations.RunPython.noop),
+        
+        # Alte Kategorie entfernen
+        migrations.RemoveField(
+            model_name='mitarbeitereintrag',
+            name='kategorie_alt',
+        ),
+        
+        # Neue Kategorie umbenennen
+        migrations.RenameField(
+            model_name='mitarbeitereintrag',
+            old_name='kategorie_fk',
+            new_name='kategorie',
+        ),
+        
+        # Farbe-Feld entfernen
+        migrations.RemoveField(
+            model_name='mitarbeitereintrag',
+            name='farbe',
         ),
         
         # Mitarbeitereintrag aktualisieren für Mehrtagestermine
@@ -106,24 +168,10 @@ class Migration(migrations.Migration):
             field=models.CharField(help_text='Name falls kein Mitarbeiter-Profil', max_length=200),
         ),
         
-        # Kategorie als ForeignKey
-        migrations.RemoveField(
-            model_name='mitarbeitereintrag',
-            name='farbe',
-        ),
-        migrations.AlterField(
-            model_name='mitarbeitereintrag',
-            name='kategorie',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='mitarbeiter_eintraege', to='kalender.kalenderkategorie'),
-        ),
-        
         # Neue Typ-Optionen
         migrations.AlterField(
             model_name='mitarbeitereintrag',
             name='typ',
             field=models.CharField(choices=[('termin', 'Termin'), ('krankheit', 'Krankheit'), ('urlaub', 'Urlaub'), ('leitung', 'Leitung'), ('extern', 'Extern'), ('unentschuldigt', 'Unentschuldigt')], default='termin', max_length=20),
         ),
-        
-        # Kategorien aktualisieren
-        migrations.RunPython(update_kategorien),
     ]
