@@ -42,6 +42,7 @@ import ProfilePage from "./components/ProfilePage";
 import PrivacyInfoPage from "./components/PrivacyInfoPage";
 import Jugendverwaltung from "./components/Jugendverwaltung";
 import KalenderPage from "./components/KalenderPage";
+import RaumbelegungsplanView from "./components/RaumbelegungsplanView";
 import PublicRegistration from "./components/PublicRegistration_SingleParent";
 import { canAccessJugendverwaltung } from "./utils/auth";
 import "./styles.css";
@@ -90,6 +91,7 @@ function NavBar() {
     { text: "🗑️ Papierkorb", path: "/trash" },
     { text: "🔒 Datenschutz-Info", path: "/privacy-info" },
     { text: "📅 Kalender", path: "/kalender" },
+    { text: "🏢 Raumbelegungsplan", path: "/raumbelegungsplan" },
     { text: "Gruppen verwalten", path: "/admin-dashboard/gruppen" },
     { text: "Familien verwalten", path: "/admin-dashboard/families" },
   ];
@@ -349,6 +351,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <KalenderPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/raumbelegungsplan"
+                    element={
+                      <ProtectedRoute>
+                        <RaumbelegungsplanView />
                       </ProtectedRoute>
                     }
                   />
