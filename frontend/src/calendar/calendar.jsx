@@ -319,6 +319,10 @@ export default function ModernCalendar({ type = "gemeinde" }) {
     setEventStartTime("09:00");
     setEventEndTime("10:00");
     setEventType("allgemein");
+    // Setze selectedDate auf heute falls nicht gesetzt
+    if (!selectedDate) {
+      setSelectedDate(new Date());
+    }
     setOpenEventDialog(true);
   };
 
@@ -349,9 +353,15 @@ export default function ModernCalendar({ type = "gemeinde" }) {
           : type === "mitarbeiter"
           ? "mitarbeitertermine"
           : "raumbelegungen";
+      
+      // Sichere Datumformatierung um Timezone-Probleme zu vermeiden
+      const datumStr = selectedDate instanceof Date 
+        ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
+        : formatDate(selectedDate);
+      
       const eventData = {
         titel: eventTitle,
-        datum: formatDate(selectedDate),
+        datum: datumStr,
         startzeit: eventStartTime,
         endzeit: eventEndTime,
         beschreibung: eventDescription,

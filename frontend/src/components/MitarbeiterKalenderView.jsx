@@ -115,7 +115,8 @@ export default function MitarbeiterKalenderView() {
       const date = new Date(year, month, d);
       const dayOfWeek = date.getDay();
       const weekdayMondayStart = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      const dateString = date.toISOString().split("T")[0];
+      // Verwende manuelle Formatierung statt toISOString() um Timezone-Probleme zu vermeiden
+      const dateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
       // Feiertag prüfen
       const feiertag = feiertage.find((ft) => ft.datum === dateString);

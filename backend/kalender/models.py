@@ -153,26 +153,32 @@ class Mitarbeitereintrag(models.Model):
         # Prüfe, ob es ein Urlaub-Eintrag ist
         is_new = self.pk is None
         old_tage = 0
+        old_war_urlaub = False
         
-        if not is_new:
+        if not is_new and self.mitarbeiter:
             # Hole alte Version für Vergleich
             try:
                 old = Mitarbeitereintrag.objects.get(pk=self.pk)
-                # Berechne alte Tage BEVOR wir speichern
-                if old.typ == 'urlaub' and old.mitarbeiter:
+                # Merke alte Werte
+                if old.typ == 'urlaub':
+                    old_war_urlaub = True
                     old_tage = old.dauer_tage
-                    # Ziehe alte Urlaubstage ab
-                    old.mitarbeiter.urlaubstage_genommen -= old_tage
-                    old.mitarbeiter.save()
             except Mitarbeitereintrag.DoesNotExist:
                 pass
         
         super().save(*args, **kwargs)
         
-        # Füge neue Urlaubstage hinzu (nach dem save, damit dauer_tage korrekt berechnet wird)
-        if self.typ == 'urlaub' and self.mitarbeiter:
-            neue_tage = self.dauer_tage
-            self.mitarbeiter.urlaubstage_genommen += neue_tage
+        # Aktualisiere Urlaubstage nach dem Speichern
+        if self.mitarbeiter:
+            if old_war_urlaub:
+                # Ziehe alte Urlaubstage ab
+                self.mitarbeiter.urlaubstage_genommen -= old_tage
+            
+            if self.typ == 'urlaub':
+                # Füge neue Urlaubstage hinzu
+                neue_tage = self.dauer_tage
+                self.mitarbeiter.urlaubstage_genommen += neue_tage
+            
             self.mitarbeiter.save()
     
     def delete(self, *args, **kwargs):
