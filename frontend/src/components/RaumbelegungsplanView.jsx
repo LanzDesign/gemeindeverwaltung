@@ -144,6 +144,10 @@ export default function RaumbelegungsplanView() {
   };
 
   const handleDayClick = (day, raum) => {
+    if (!raum || !raum.id) {
+      alert("Bitte einen gültigen Raum auswählen");
+      return;
+    }
     setSelectedRaum(raum);
     setSelectedDate(formatDateKey(day));
     setEditingBelegung(null);
@@ -223,7 +227,14 @@ export default function RaumbelegungsplanView() {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => handleDayClick(1, raeume[0] || {})}
+          onClick={() => {
+            if (raeume.length > 0) {
+              handleDayClick(1, raeume[0]);
+            } else {
+              alert("Bitte erst einen Raum anlegen");
+            }
+          }}
+          disabled={raeume.length === 0}
         >
           Neue Buchung
         </Button>

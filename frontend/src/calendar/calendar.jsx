@@ -1008,6 +1008,17 @@ export default function ModernCalendar({ type = "gemeinde" }) {
               value={eventTitle}
               onChange={(e) => setEventTitle(e.target.value)}
             />
+            <TextField
+              fullWidth
+              label="Datum"
+              type="date"
+              value={selectedDate ? formatDate(selectedDate) : ""}
+              onChange={(e) => {
+                const [y, m, d] = e.target.value.split("-").map(Number);
+                setSelectedDate(new Date(y, m - 1, d));
+              }}
+              InputLabelProps={{ shrink: true }}
+            />
             <FormControl fullWidth>
               <InputLabel>Typ</InputLabel>
               <Select
