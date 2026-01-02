@@ -217,9 +217,9 @@ class Raumbelegung(models.Model):
     
     raum = models.ForeignKey(Raum, on_delete=models.CASCADE, related_name='belegungen')
     titel = models.CharField(max_length=200)
-    kontaktperson = models.CharField(max_length=200, help_text='Name der Kontaktperson')
-    telefon = models.CharField(max_length=20)
-    teilnehmerzahl = models.IntegerField(help_text='Anzahl der Teilnehmer')
+    kontaktperson = models.CharField(max_length=200, blank=True, default='', help_text='Name der Kontaktperson')
+    telefon = models.CharField(max_length=20, blank=True, default='')
+    teilnehmerzahl = models.IntegerField(null=True, blank=True, help_text='Anzahl der Teilnehmer')
     
     datum_start = models.DateField()
     datum_ende = models.DateField(null=True, blank=True, help_text='Enddatum falls mehrere Tage')
