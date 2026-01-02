@@ -708,6 +708,19 @@ function MemberEdit() {
 
             <Grid item xs={12}>
               <TextField
+                select
+                fullWidth
+                label="Geschlecht"
+                {...register("gender")}
+              >
+                <MenuItem value="">Bitte wählen</MenuItem>
+                <MenuItem value="male">Männlich</MenuItem>
+                <MenuItem value="female">Weiblich</MenuItem>
+              </TextField>
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
                 fullWidth
                 label="Geburtsdatum"
                 type="date"
