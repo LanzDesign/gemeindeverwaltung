@@ -212,7 +212,12 @@ export default function MitarbeiterKalenderView() {
       setDialogOpen(false);
       loadData();
     } catch (error) {
-      console.error("Fehler beim Speichern:", error);
+      console.error("Fehler beim Speichern:", error.response?.data || error.message);
+      const errorMsg = error.response?.data?.detail || 
+                       error.response?.data?.non_field_errors?.[0] ||
+                       error.response?.data?.typ?.[0] ||
+                       "Fehler beim Speichern";
+      alert(`Fehler: ${errorMsg}`);
     }
   };
 

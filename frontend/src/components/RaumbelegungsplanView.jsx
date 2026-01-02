@@ -167,6 +167,12 @@ export default function RaumbelegungsplanView() {
 
   const handleSave = async () => {
     try {
+      // Validiere erforderliche Felder
+      if (!formData.raum || !formData.titel || !formData.datum_start) {
+        alert("Bitte füllen Sie alle erforderlichen Felder aus (Raum, Titel, Datum)");
+        return;
+      }
+      
       if (editingBelegung) {
         await axiosInstance.put(
           `/raumbelegungen/${editingBelegung.id}/`,
@@ -178,8 +184,9 @@ export default function RaumbelegungsplanView() {
       setDialogOpen(false);
       loadData();
     } catch (error) {
-      console.error("Fehler beim Speichern:", error);
-      alert("Fehler beim Speichern. Prüfe die Eingaben und Überschneidungen.");
+      console.error("Fehler beim Speichern:", error.response?.data || error.message);
+      const errorMsg = error.response?.data?.detail || error.response?.data?.non_field_errors?.[0] || "Fehler beim Speichern";
+      alert(`Fehler: ${errorMsg}`);
     }
   };
 

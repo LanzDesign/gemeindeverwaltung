@@ -302,9 +302,14 @@ export default function ModernCalendar({ type = "gemeinde" }) {
 
   const handleDateClick = (day) => {
     if (!day) return;
-    setSelectedDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
-    );
+    // Verwende formatDate direkt statt Date-Konstruktion um Timezone-Probleme zu vermeiden
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+    const dayStr = String(day).padStart(2, "0");
+    const dateStr = `${year}-${month}-${dayStr}`;
+    // Erstelle Date aus ISO-String um Timezone-Shift zu vermeiden
+    const [y, m, d] = dateStr.split("-").map(Number);
+    setSelectedDate(new Date(y, m - 1, d));
   };
 
   const handleAddEvent = () => {
@@ -333,7 +338,10 @@ export default function ModernCalendar({ type = "gemeinde" }) {
   };
 
   const handleSaveEvent = async () => {
-    if (!selectedDate || !eventTitle) return;
+    if (!selectedDate || !eventTitle) {
+      alert("Bitte Datum und Titel eingeben");
+      return;
+    }
     try {
       const endpoint =
         type === "gemeinde"
@@ -371,7 +379,8 @@ export default function ModernCalendar({ type = "gemeinde" }) {
       handleCloseEventDialog();
       loadEvents();
     } catch (error) {
-      console.error("Fehler:", error);
+      console.error("Fehler beim Speichern:", error.response?.data || error.message);
+      alert(`Fehler: ${error.response?.data?.detail || error.response?.data?.non_field_errors?.[0] || "Fehler beim Speichern"}`);
     }
   };
 
