@@ -45,7 +45,7 @@ export default function KalenderPage() {
 
   return (
     <Container
-      maxWidth="lg"
+      maxWidth="xl"
       sx={{
         py: { xs: 2, sm: 3 },
         px: { xs: 1, sm: 2, md: 3 },

@@ -133,7 +133,7 @@ function TrashPage() {
   if (loading) return <Container sx={{ mt: 4 }}>Lädt...</Container>;
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
         <IconButton onClick={() => navigate("/admin")} sx={{ mr: 2 }}>
           <ArrowBackIcon />

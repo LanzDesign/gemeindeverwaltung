@@ -109,6 +109,7 @@ export default function ModernCalendar({ type = "gemeinde" }) {
   const [eventType, setEventType] = useState("allgemein");
   const [viewMode, setViewMode] = useState("month");
   const [loading, setLoading] = useState(false);
+  const [showAllEvents, setShowAllEvents] = useState(false); // Umschalter für Seitenleiste
 
   const colors = {
     primary: theme.palette.mode === "dark" ? "#6d28d9" : "#7c3aed",
@@ -496,9 +497,9 @@ export default function ModernCalendar({ type = "gemeinde" }) {
     return monthEvents;
   };
 
-  const selectedEvents = selectedDate
+  const selectedEvents = (selectedDate && !showAllEvents)
     ? events[formatDate(selectedDate)] || []
-    : getEventsForView(); // Zeige alle Monats-Termine wenn kein Tag ausgewählt
+    : getEventsForView(); // Zeige alle Monats-Termine oder Tages-Termine basierend auf Umschalter
   const weekDays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
   const calendarDays = generateCalendarDays();
 
@@ -1078,7 +1079,7 @@ export default function ModernCalendar({ type = "gemeinde" }) {
           Termine
         </Typography>
         <Typography variant="body2" color="text.secondary" mb={2}>
-          {selectedDate
+          {(selectedDate && !showAllEvents)
             ? selectedDate.toLocaleDateString("de-DE", {
                 day: "numeric",
                 month: "long",
@@ -1089,6 +1090,27 @@ export default function ModernCalendar({ type = "gemeinde" }) {
                 year: "numeric",
               })}
         </Typography>
+
+        {selectedDate && (
+          <Stack direction="row" spacing={1} mb={2}>
+            <Button
+              size="small"
+              variant={!showAllEvents ? "contained" : "outlined"}
+              onClick={() => setShowAllEvents(false)}
+              sx={{ textTransform: "none", flex: 1 }}
+            >
+              Nur dieser Tag
+            </Button>
+            <Button
+              size="small"
+              variant={showAllEvents ? "contained" : "outlined"}
+              onClick={() => setShowAllEvents(true)}
+              sx={{ textTransform: "none", flex: 1 }}
+            >
+              Alle Termine
+            </Button>
+          </Stack>
+        )}
 
         <Stack spacing={1} mb={2}>
           <Typography variant="caption" fontWeight="bold">
@@ -1167,7 +1189,7 @@ export default function ModernCalendar({ type = "gemeinde" }) {
                     }
                     secondary={
                       <Stack spacing={0.5}>
-                        {!selectedDate && event.datum && (
+                        {((!selectedDate || showAllEvents) && event.datum) && (
                           <Typography variant="body2" color="primary" fontWeight="bold">
                             {new Date(event.datum).toLocaleDateString("de-DE", {
                               weekday: "short",

@@ -683,7 +683,7 @@ function GruppenPage() {
 
   return (
     <Container
-      maxWidth="lg"
+      maxWidth="xl"
       sx={{ mt: { xs: 2, sm: 4 }, mb: { xs: 2, sm: 4 }, px: { xs: 1, sm: 3 } }}
     >
       <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 } }}>
