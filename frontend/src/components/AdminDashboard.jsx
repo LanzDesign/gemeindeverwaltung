@@ -363,8 +363,12 @@ function AdminDashboard() {
         if (filterNonDonor && m.is_donor) return false;
         if (filterMember && !m.is_member) return false;
         if (filterYouth && !m.is_youth) return false;
-        if (filterMale && m.gender !== "male") return false;
-        if (filterFemale && m.gender !== "female") return false;
+        if (filterNoGroup) {
+          // Show only members without any group
+          if (m.gruppen && m.gruppen.length > 0) return false;
+        }
+        if (filterMale && (m.gender || '').toLowerCase() !== "male") return false;
+        if (filterFemale && (m.gender || '').toLowerCase() !== "female") return false;
 
         // Filter children:
         // - If "Alle anzeigen" is active, show everyone (adults and children)
