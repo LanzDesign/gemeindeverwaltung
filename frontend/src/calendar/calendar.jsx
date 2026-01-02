@@ -298,7 +298,11 @@ export default function ModernCalendar({ type = "gemeinde" }) {
     }
   };
 
-  const goToToday = () => setCurrentDate(new Date());
+  const goToToday = () => {
+    const today = new Date();
+    setCurrentDate(today);
+    setSelectedDate(today); // Wähle den heutigen Tag aus
+  };
 
   const handleDateClick = (day) => {
     if (!day) return;
@@ -494,7 +498,7 @@ export default function ModernCalendar({ type = "gemeinde" }) {
 
   const selectedEvents = selectedDate
     ? events[formatDate(selectedDate)] || []
-    : [];
+    : getEventsForView(); // Zeige alle Monats-Termine wenn kein Tag ausgewählt
   const weekDays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
   const calendarDays = generateCalendarDays();
 
@@ -1080,7 +1084,10 @@ export default function ModernCalendar({ type = "gemeinde" }) {
                 month: "long",
                 year: "numeric",
               })
-            : "Datum wählen"}
+            : currentDate.toLocaleDateString("de-DE", {
+                month: "long",
+                year: "numeric",
+              })}
         </Typography>
 
         <Stack spacing={1} mb={2}>
@@ -1160,6 +1167,15 @@ export default function ModernCalendar({ type = "gemeinde" }) {
                     }
                     secondary={
                       <Stack spacing={0.5}>
+                        {!selectedDate && event.datum && (
+                          <Typography variant="body2" color="primary" fontWeight="bold">
+                            {new Date(event.datum).toLocaleDateString("de-DE", {
+                              weekday: "short",
+                              day: "numeric",
+                              month: "short",
+                            })}
+                          </Typography>
+                        )}
                         <Typography variant="body2" color="text.secondary">
                           {event.startzeit} - {event.endzeit}
                         </Typography>
