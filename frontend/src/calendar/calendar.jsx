@@ -764,90 +764,245 @@ export default function ModernCalendar({ type = "gemeinde" }) {
           </>
         )}
 
-        {(viewMode === "week" || viewMode === "day") && (
-          <List sx={{ maxHeight: 500, overflow: "auto" }}>
-            {getEventsForView().map((event, idx) => (
-              <ListItem
-                key={idx}
-                sx={{
-                  mb: 1,
-                  p: 2,
-                  borderRadius: 2,
-                  bgcolor: colors.cardBg,
-                  borderLeft: `4px solid ${getEventColor(event)}`,
-                  transition: "all 0.2s",
-                  "&:hover": {
-                    transform: "translateX(4px)",
-                    boxShadow: theme.shadows[4],
-                  },
-                }}
-              >
-                <ListItemText
-                  primary={
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography fontWeight="bold">{event.titel}</Typography>
-                      <Chip
-                        label={
-                          event.event_type === "intern"
-                            ? "Intern"
-                            : event.event_type === "extern"
-                            ? "Extern"
-                            : "Allgemein"
-                        }
-                        size="small"
-                        sx={{
-                          bgcolor: alpha(getEventColor(event), 0.2),
-                          color: getEventColor(event),
-                        }}
-                      />
-                    </Stack>
-                  }
-                  secondary={
-                    <Stack spacing={0.5} mt={1}>
-                      {viewMode === "week" && event.displayDate && (
-                        <Typography variant="body2" color="text.secondary">
-                          {event.displayDate.toLocaleDateString("de-DE", {
-                            weekday: "short",
-                            day: "numeric",
-                            month: "short",
-                          })}
-                        </Typography>
-                      )}
-                      <Typography variant="body2" color="text.secondary">
-                        {event.startzeit} - {event.endzeit}
+        {viewMode === "week" && (
+          <Box sx={{ overflowX: "auto" }}>
+            <Box sx={{ minWidth: 800, position: "relative" }}>
+              {/* Header mit Wochentagen */}
+              <Box sx={{ display: "flex", borderBottom: 1, borderColor: "divider" }}>
+                <Box sx={{ width: 60, flexShrink: 0, p: 1 }}>
+                  <Typography variant="caption" color="text.secondary">Zeit</Typography>
+                </Box>
+                {getWeekDays().map((date, idx) => (
+                  <Box
+                    key={idx}
+                    sx={{
+                      flex: 1,
+                      p: 1,
+                      textAlign: "center",
+                      bgcolor: date.getDay() === 0 ? colors.sundayBg : "transparent",
+                      borderLeft: idx > 0 ? 1 : 0,
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Typography variant="caption" fontWeight="bold">
+                      {date.toLocaleDateString("de-DE", { weekday: "short" })}
+                    </Typography>
+                    <Typography variant="h6" fontWeight="bold">
+                      {date.getDate()}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {date.toLocaleDateString("de-DE", { month: "short" })}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+
+              {/* Zeit-Raster */}
+              <Box sx={{ position: "relative" }}>
+                {Array.from({ length: 24 }, (_, hour) => (
+                  <Box
+                    key={hour}
+                    sx={{
+                      display: "flex",
+                      borderBottom: 1,
+                      borderColor: "divider",
+                      minHeight: 60,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 60,
+                        flexShrink: 0,
+                        p: 0.5,
+                        borderRight: 1,
+                        borderColor: "divider",
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary">
+                        {String(hour).padStart(2, "0")}:00
                       </Typography>
-                      {event.beschreibung && (
-                        <Typography variant="body2" color="text.secondary">
-                          {event.beschreibung}
-                        </Typography>
-                      )}
-                    </Stack>
-                  }
-                />
-                <Stack direction="row" spacing={1}>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleEditEvent(event)}
-                    sx={{ color: colors.primary }}
+                    </Box>
+                    {getWeekDays().map((date, dayIdx) => {
+                      const dateStr = formatDate(date);
+                      const dayEvents = (events[dateStr] || []).filter((e) => {
+                        const eventHour = parseInt(e.startzeit?.split(":")[0] || 0);
+                        return eventHour === hour;
+                      });
+                      
+                      return (
+                        <Box
+                          key={dayIdx}
+                          sx={{
+                            flex: 1,
+                            p: 0.5,
+                            borderLeft: dayIdx > 0 ? 1 : 0,
+                            borderColor: "divider",
+                            bgcolor: date.getDay() === 0 ? colors.sundayBg : "transparent",
+                            position: "relative",
+                          }}
+                        >
+                          {dayEvents.map((event, eventIdx) => (
+                            <Box
+                              key={eventIdx}
+                              onClick={() => handleEditEvent(event)}
+                              sx={{
+                                p: 0.5,
+                                mb: 0.5,
+                                borderRadius: 1,
+                                bgcolor: alpha(getEventColor(event), 0.9),
+                                color: "white",
+                                cursor: "pointer",
+                                fontSize: "0.75rem",
+                                overflow: "hidden",
+                                "&:hover": {
+                                  bgcolor: getEventColor(event),
+                                  transform: "scale(1.02)",
+                                },
+                                transition: "all 0.2s",
+                              }}
+                            >
+                              <Typography variant="caption" fontWeight="bold" noWrap>
+                                {event.titel}
+                              </Typography>
+                              <Typography variant="caption" display="block" noWrap>
+                                {event.startzeit} - {event.endzeit}
+                              </Typography>
+                            </Box>
+                          ))}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          </Box>
+        )}
+
+        {viewMode === "day" && (
+          <Box sx={{ overflowY: "auto", maxHeight: 600 }}>
+            <Box sx={{ position: "relative" }}>
+              {/* Header mit aktuellem Tag */}
+              <Box sx={{ display: "flex", borderBottom: 2, borderColor: "divider", mb: 2, pb: 1 }}>
+                <Box sx={{ width: 80, flexShrink: 0, p: 1 }}>
+                  <Typography variant="caption" color="text.secondary">Zeit</Typography>
+                </Box>
+                <Box sx={{ flex: 1, textAlign: "center" }}>
+                  <Typography variant="h6" fontWeight="bold">
+                    {currentDate.toLocaleDateString("de-DE", { 
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric"
+                    })}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Zeit-Raster für einen Tag */}
+              {Array.from({ length: 24 }, (_, hour) => {
+                const dateStr = formatDate(currentDate);
+                const hourEvents = (events[dateStr] || []).filter((e) => {
+                  const eventHour = parseInt(e.startzeit?.split(":")[0] || 0);
+                  return eventHour === hour;
+                });
+
+                return (
+                  <Box
+                    key={hour}
+                    sx={{
+                      display: "flex",
+                      borderBottom: 1,
+                      borderColor: "divider",
+                      minHeight: 60,
+                    }}
                   >
-                    <Edit fontSize="small" />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleDeleteEvent(event.id)}
-                    sx={{ color: colors.secondary }}
-                  >
-                    <Delete fontSize="small" />
-                  </IconButton>
-                </Stack>
-              </ListItem>
-            ))}
-            {getEventsForView().length === 0 && (
-              <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-                Keine Termine
-              </Typography>
-            )}
-          </List>
+                    <Box
+                      sx={{
+                        width: 80,
+                        flexShrink: 0,
+                        p: 1,
+                        borderRight: 1,
+                        borderColor: "divider",
+                        textAlign: "right",
+                      }}
+                    >
+                      <Typography variant="body2" color="text.secondary" fontWeight="bold">
+                        {String(hour).padStart(2, "0")}:00
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        flex: 1,
+                        p: 1,
+                        position: "relative",
+                      }}
+                    >
+                      {hourEvents.map((event, eventIdx) => (
+                        <Box
+                          key={eventIdx}
+                          onClick={() => handleEditEvent(event)}
+                          sx={{
+                            p: 1.5,
+                            mb: 1,
+                            borderRadius: 2,
+                            bgcolor: alpha(getEventColor(event), 0.9),
+                            color: "white",
+                            cursor: "pointer",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            "&:hover": {
+                              bgcolor: getEventColor(event),
+                              transform: "translateX(4px)",
+                              boxShadow: theme.shadows[4],
+                            },
+                            transition: "all 0.2s",
+                          }}
+                        >
+                          <Box>
+                            <Typography variant="body1" fontWeight="bold">
+                              {event.titel}
+                            </Typography>
+                            <Typography variant="body2">
+                              {event.startzeit} - {event.endzeit}
+                            </Typography>
+                            {event.beschreibung && (
+                              <Typography variant="caption" sx={{ opacity: 0.9, mt: 0.5, display: "block" }}>
+                                {event.beschreibung}
+                              </Typography>
+                            )}
+                          </Box>
+                          <Stack direction="row" spacing={0.5}>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditEvent(event);
+                              }}
+                              sx={{ color: "white" }}
+                            >
+                              <Edit fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteEvent(event.id);
+                              }}
+                              sx={{ color: "white" }}
+                            >
+                              <Delete fontSize="small" />
+                            </IconButton>
+                          </Stack>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
         )}
       </Paper>
 
