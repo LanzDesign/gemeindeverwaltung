@@ -268,6 +268,11 @@ def public_register(request):
             return Response(response_data, status=status.HTTP_201_CREATED)
             
     except Exception as e:
+        print(f"=== PUBLIC REGISTER ERROR ===")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return Response(
             {"error": f"Ein Fehler ist aufgetreten: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
