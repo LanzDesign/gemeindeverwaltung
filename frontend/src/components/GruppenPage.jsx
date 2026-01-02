@@ -675,7 +675,7 @@ function GruppenPage() {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, textAlign: "center" }}>
+      <Container maxWidth={false} sx={{ mt: 4, textAlign: "center", px: { xs: 1, sm: 2 } }}>
         <CircularProgress />
       </Container>
     );

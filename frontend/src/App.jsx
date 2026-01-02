@@ -318,7 +318,7 @@ function App() {
             <>
               <NavBar />
               <Container
-                maxWidth="lg"
+                maxWidth={false}
                 sx={{ px: { xs: 0, sm: 2, md: 3 }, py: { xs: 0, sm: 2 } }}
               >
                 <Routes>

@@ -697,7 +697,7 @@ function AdminDashboard() {
   }
 
   return (
-    <Container maxWidth={false} sx={{ mt: 4, mb: 4, px: { xs: 0.5, md: 1 } }}>
+    <Container maxWidth={false} sx={{ mt: 4, mb: 4, px: { xs: 0.5, sm: 1, md: 2 } }}>
       <Box
         sx={{
           background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",

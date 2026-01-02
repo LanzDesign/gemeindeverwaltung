@@ -174,7 +174,7 @@ function NewMember() {
   // Zeige Datenschutzformular wenn Schritt 2
   if (activeStep === 1 && memberData) {
     return (
-      <Container maxWidth="lg">
+      <Container maxWidth={false} sx={{ px: { xs: 1, sm: 2 } }}>
         <Box sx={{ my: 4 }}>
           <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
             {steps.map((label) => (

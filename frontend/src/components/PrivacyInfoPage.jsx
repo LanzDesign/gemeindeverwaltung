@@ -65,7 +65,7 @@ function PrivacyInfoPage() {
   }, []);
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth={false} sx={{ mt: 4, mb: 4, px: { xs: 1, sm: 2 } }}>
       <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
         <IconButton onClick={() => navigate("/admin")} sx={{ mr: 2 }}>
           <ArrowBackIcon />
