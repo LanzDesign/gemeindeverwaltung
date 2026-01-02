@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, KalenderKategorie, MitarbeiterKategorie, Mitarbeiter
+from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, Raum, KalenderKategorie, MitarbeiterKategorie, Mitarbeiter
 
 
 @admin.register(Mitarbeiter)
@@ -80,13 +80,29 @@ class MitarbeitereintraginAdmin(admin.ModelAdmin):
     kategorie_anzeigen.allow_tags = True
 
 
+@admin.register(Raum)
+class RaumAdmin(admin.ModelAdmin):
+    list_display = ['name', 'kapazitaet', 'aktiv', 'belegungen_count']
+    list_filter = ['aktiv']
+    search_fields = ['name', 'beschreibung']
+    ordering = ['name']
+    fields = ['name', 'beschreibung', 'kapazitaet', 'aktiv']
+    
+    def belegungen_count(self, obj):
+        return obj.belegungen.count()
+    belegungen_count.short_description = 'Buchungen'
+
+
 @admin.register(Raumbelegung)
 class RaumbelegungAdmin(admin.ModelAdmin):
-    list_display = ['raum', 'titel', 'datum', 'startzeit', 'endzeit', 'kategorie', 'farbe_anzeigen']
-    list_filter = ['raum', 'datum', 'kategorie', 'erstellt_am']
-    search_fields = ['raum', 'titel', 'beschreibung']
-    ordering = ['-datum', 'raum']
-    fields = ['raum', 'titel', 'datum', 'startzeit', 'endzeit', 'kategorie', 'farbe', 'beschreibung', 'erstellt_von']
+    list_display = ['raum', 'titel', 'kontaktperson', 'datum_start', 'startzeit', 'endzeit', 'kategorie', 'farbe_anzeigen']
+    list_filter = ['raum', 'datum_start', 'kategorie', 'wiederholung', 'erstellt_am']
+    search_fields = ['raum__name', 'titel', 'kontaktperson', 'telefon', 'beschreibung']
+    ordering = ['-datum_start', 'raum', 'startzeit']
+    fields = ['raum', 'titel', 'kontaktperson', 'telefon', 'teilnehmerzahl', 
+              'datum_start', 'datum_ende', 'startzeit', 'endzeit', 
+              'kategorie', 'wiederholung', 'wiederholung_bis', 'farbe', 'beschreibung', 'erstellt_von']
+    readonly_fields = ['erstellt_von']
     
     def farbe_anzeigen(self, obj):
         return f'<span style="background-color:{obj.farbe}; padding:3px 10px; border-radius:3px; color:white;">{obj.farbe}</span>'

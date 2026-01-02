@@ -1,8 +1,8 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, serializers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, KalenderKategorie, MitarbeiterKategorie, Mitarbeiter
-from .serializers import GemeindeterminSerializer, MitarbeitereintraginSerializer, RaumbelegungSerializer, KalenderKategorieSerializer, MitarbeiterKategorieSerializer, MitarbeiterSerializer
+from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, Raum, KalenderKategorie, MitarbeiterKategorie, Mitarbeiter
+from .serializers import GemeindeterminSerializer, MitarbeitereintraginSerializer, RaumbelegungSerializer, RaumSerializer, KalenderKategorieSerializer, MitarbeiterKategorieSerializer, MitarbeiterSerializer
 from .services import FeiertagService
 
 
@@ -80,4 +80,14 @@ class RaumbelegungViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
+        # Prüfe auf Überschneidungen
+        if not serializer.instance.ueberschneidung_pruefung():
+            raise serializers.ValidationError("Es gibt eine zeitliche Überschneidung mit einer anderen Buchung.")
         serializer.save(erstellt_von=self.request.user)
+
+
+class RaumViewSet(viewsets.ModelViewSet):
+    """ViewSet für Räume"""
+    queryset = Raum.objects.all()
+    serializer_class = RaumSerializer
+    permission_classes = [permissions.IsAuthenticated]

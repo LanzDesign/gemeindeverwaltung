@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, KalenderKategorie, MitarbeiterKategorie, Mitarbeiter
+from .models import Gemeindetermin, Mitarbeitereintrag, Raumbelegung, Raum, KalenderKategorie, MitarbeiterKategorie, Mitarbeiter
 
 
 class MitarbeiterSerializer(serializers.ModelSerializer):
@@ -47,8 +47,28 @@ class MitarbeitereintraginSerializer(serializers.ModelSerializer):
 
 
 class RaumbelegungSerializer(serializers.ModelSerializer):
+    raum_name = serializers.CharField(source='raum.name', read_only=True)
+    ueberschneidung_ok = serializers.SerializerMethodField()
+    
     class Meta:
         model = Raumbelegung
-        fields = ['id', 'raum', 'titel', 'datum', 'startzeit', 'endzeit', 'beschreibung', 'kategorie', 'farbe', 'erstellt_am', 'aktualisiert_am']
+        fields = ['id', 'raum', 'raum_name', 'titel', 'kontaktperson', 'telefon', 'teilnehmerzahl',
+                  'datum_start', 'datum_ende', 'startzeit', 'endzeit', 'kategorie', 'wiederholung', 
+                  'wiederholung_bis', 'beschreibung', 'farbe', 'ueberschneidung_ok', 'erstellt_am', 'aktualisiert_am']
         read_only_fields = ['erstellt_am', 'aktualisiert_am']
+    
+    def get_ueberschneidung_ok(self, obj):
+        return obj.ueberschneidung_pruefung()
+
+
+class RaumSerializer(serializers.ModelSerializer):
+    belegungen_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Raum
+        fields = ['id', 'name', 'beschreibung', 'kapazitaet', 'aktiv', 'belegungen_count', 'erstellt_am', 'aktualisiert_am']
+        read_only_fields = ['erstellt_am', 'aktualisiert_am']
+    
+    def get_belegungen_count(self, obj):
+        return obj.belegungen.count()
 

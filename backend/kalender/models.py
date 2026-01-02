@@ -188,31 +188,80 @@ class Mitarbeitereintrag(models.Model):
         return self.datum_start
 
 
+class Raum(models.Model):
+    """Räume für Raumbelegungsplan"""
+    name = models.CharField(max_length=100, unique=True)
+    beschreibung = models.TextField(blank=True)
+    kapazitaet = models.IntegerField(help_text='Maximale Anzahl Personen')
+    aktiv = models.BooleanField(default=True)
+    erstellt_am = models.DateTimeField(auto_now_add=True)
+    aktualisiert_am = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Raum"
+        verbose_name_plural = "Räume"
+
+    def __str__(self):
+        return f"{self.name} ({self.kapazitaet} Personen)"
+
+
 class Raumbelegung(models.Model):
     """Raumbelegungsplan"""
     KATEGORIE_CHOICES = [
         ('intern', 'Intern'),
         ('extern', 'Extern'),
-        ('allgemein', 'Allgemein'),
+        ('termin', 'Termin'),
+        ('fest', 'Festgelegt'),
     ]
     
-    raum = models.CharField(max_length=100)
+    raum = models.ForeignKey(Raum, on_delete=models.CASCADE, related_name='belegungen')
     titel = models.CharField(max_length=200)
-    datum = models.DateField()
+    kontaktperson = models.CharField(max_length=200, help_text='Name der Kontaktperson')
+    telefon = models.CharField(max_length=20)
+    teilnehmerzahl = models.IntegerField(help_text='Anzahl der Teilnehmer')
+    
+    datum_start = models.DateField()
+    datum_ende = models.DateField(null=True, blank=True, help_text='Enddatum falls mehrere Tage')
     startzeit = models.TimeField()
     endzeit = models.TimeField()
+    
+    kategorie = models.CharField(max_length=20, choices=KATEGORIE_CHOICES, default='termin')
+    
+    # Wiederholung
+    wiederholung = models.CharField(
+        max_length=20,
+        choices=[('keine', 'Keine'), ('täglich', 'Täglich'), ('wöchentlich', 'Wöchentlich'), ('monatlich', 'Monatlich')],
+        default='keine'
+    )
+    wiederholung_bis = models.DateField(null=True, blank=True, help_text='Wiederholung bis Datum')
+    
     beschreibung = models.TextField(blank=True)
-    kategorie = models.CharField(max_length=20, choices=KATEGORIE_CHOICES, default='allgemein')
-    farbe = models.CharField(max_length=7, default='#ea580c', help_text='Hex-Farbcode (z.B. #ea580c)')
+    farbe = models.CharField(max_length=7, default='#2563eb', help_text='Hex-Farbcode')
+    
     erstellt_am = models.DateTimeField(auto_now_add=True)
     aktualisiert_am = models.DateTimeField(auto_now=True)
     erstellt_von = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     class Meta:
-        ordering = ['-datum', 'raum', 'startzeit']
+        ordering = ['-datum_start', 'raum', 'startzeit']
         verbose_name = "Raumbelegung"
         verbose_name_plural = "Raumbelegungen"
 
     def __str__(self):
-        return f"{self.raum} - {self.titel} ({self.datum})"
+        return f"{self.raum.name} - {self.titel} ({self.datum_start})"
+
+    def ueberschneidung_pruefung(self):
+        """Prüft auf zeitliche Überschneidungen mit anderen Buchungen im selben Raum"""
+        # Prüfe alle Buchungen im gleichen Raum
+        buchungen = Raumbelegung.objects.filter(raum=self.raum).exclude(pk=self.pk)
+        
+        for buchung in buchungen:
+            # Prüfe ob Datumsbereich überschneidet
+            if not (self.datum_ende or self.datum_start) < buchung.datum_start or \
+               not (buchung.datum_ende or buchung.datum_start) < self.datum_start:
+                # Datumsbereich überlappt - prüfe Zeiten
+                if not (self.endzeit <= buchung.startzeit or self.startzeit >= buchung.endzeit):
+                    return False
+        return True
 
