@@ -580,142 +580,179 @@ export default function MitarbeiterKalenderView() {
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              select
-              label="Typ"
-              value={formData.typ}
-              onChange={(e) =>
-                setFormData({ ...formData, typ: e.target.value })
-              }
-              fullWidth
-            >
-              <MenuItem value="termin">Termin</MenuItem>
-              <MenuItem value="urlaub">Urlaub</MenuItem>
-              <MenuItem value="krankheit">Krankheit</MenuItem>
-              <MenuItem value="unentschuldigt">Unentschuldigt</MenuItem>
-              <MenuItem value="leitung">Leitung</MenuItem>
-              <MenuItem value="extern">Extern</MenuItem>
-            </TextField>
-
-            <TextField
-              label="Titel"
-              value={formData.titel}
-              onChange={(e) =>
-                setFormData({ ...formData, titel: e.target.value })
-              }
-              fullWidth
-            />
-
-            <Stack direction="row" spacing={2}>
-              <TextField
-                label="Von"
-                type="date"
-                value={formData.datum_start}
-                onChange={(e) =>
-                  setFormData({ ...formData, datum_start: e.target.value })
-                }
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                label="Bis"
-                type="date"
-                value={formData.datum_ende}
-                onChange={(e) =>
-                  setFormData({ ...formData, datum_ende: e.target.value })
-                }
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-            </Stack>
-
-            <Stack direction="row" spacing={2}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.ganztaegig}
-                    onChange={(e) => {
-                      const isChecked = e.target.checked;
-                      setFormData({
-                        ...formData,
-                        ganztaegig: isChecked,
-                        halbtags: isChecked ? false : formData.halbtags,
-                      });
-                    }}
-                  />
-                }
-                label="Ganztägig"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.halbtags}
-                    onChange={(e) => {
-                      const isChecked = e.target.checked;
-                      setFormData({
-                        ...formData,
-                        halbtags: isChecked,
-                        ganztaegig: isChecked ? false : formData.ganztaegig,
-                      });
-                    }}
-                  />
-                }
-                label="Halbtags"
-              />
-            </Stack>
-
-            {!formData.ganztaegig && !formData.halbtags && (
-              <Stack direction="row" spacing={2}>
+            {/* Vereinfachter Dialog für NEUE URLAUB-Anträge */}
+            {!editingEntry && formData.typ === "urlaub" ? (
+              <>
                 <TextField
-                  label="Startzeit"
-                  type="time"
-                  value={formData.startzeit}
+                  select
+                  label="Kategorie"
+                  value={formData.kategorie || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, startzeit: e.target.value })
+                    setFormData({ ...formData, kategorie: e.target.value || null })
                   }
                   fullWidth
-                  InputLabelProps={{ shrink: true }}
-                />
+                >
+                  <MenuItem value="">Keine</MenuItem>
+                  {kategorien.map((kat) => (
+                    <MenuItem key={kat.id} value={kat.id}>
+                      {kat.bezeichnung} ({kat.abkuerzung})
+                    </MenuItem>
+                  ))}
+                </TextField>
+
                 <TextField
-                  label="Endzeit"
-                  type="time"
-                  value={formData.endzeit}
+                  label="Beschreibung (optional)"
+                  value={formData.beschreibung}
                   onChange={(e) =>
-                    setFormData({ ...formData, endzeit: e.target.value })
+                    setFormData({ ...formData, beschreibung: e.target.value })
                   }
                   fullWidth
-                  InputLabelProps={{ shrink: true }}
+                  multiline
+                  rows={3}
+                  placeholder="Grund für den Urlaubsantrag..."
                 />
-              </Stack>
+              </>
+            ) : (
+              <>
+                {/* Vollständiger Dialog für BESTEHENDE oder andere Einträge */}
+                <TextField
+                  select
+                  label="Typ"
+                  value={formData.typ}
+                  onChange={(e) =>
+                    setFormData({ ...formData, typ: e.target.value })
+                  }
+                  fullWidth
+                >
+                  <MenuItem value="termin">Termin</MenuItem>
+                  <MenuItem value="urlaub">Urlaub</MenuItem>
+                  <MenuItem value="krankheit">Krankheit</MenuItem>
+                  <MenuItem value="unentschuldigt">Unentschuldigt</MenuItem>
+                  <MenuItem value="leitung">Leitung</MenuItem>
+                  <MenuItem value="extern">Extern</MenuItem>
+                </TextField>
+
+                <TextField
+                  label="Titel"
+                  value={formData.titel}
+                  onChange={(e) =>
+                    setFormData({ ...formData, titel: e.target.value })
+                  }
+                  fullWidth
+                />
+
+                <Stack direction="row" spacing={2}>
+                  <TextField
+                    label="Von"
+                    type="date"
+                    value={formData.datum_start}
+                    onChange={(e) =>
+                      setFormData({ ...formData, datum_start: e.target.value })
+                    }
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                  />
+                  <TextField
+                    label="Bis"
+                    type="date"
+                    value={formData.datum_ende}
+                    onChange={(e) =>
+                      setFormData({ ...formData, datum_ende: e.target.value })
+                    }
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Stack>
+
+                <Stack direction="row" spacing={2}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={formData.ganztaegig}
+                        onChange={(e) => {
+                          const isChecked = e.target.checked;
+                          setFormData({
+                            ...formData,
+                            ganztaegig: isChecked,
+                            halbtags: isChecked ? false : formData.halbtags,
+                          });
+                        }}
+                      />
+                    }
+                    label="Ganztägig"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={formData.halbtags}
+                        onChange={(e) => {
+                          const isChecked = e.target.checked;
+                          setFormData({
+                            ...formData,
+                            halbtags: isChecked,
+                            ganztaegig: isChecked ? false : formData.ganztaegig,
+                          });
+                        }}
+                      />
+                    }
+                    label="Halbtags"
+                  />
+                </Stack>
+
+                {!formData.ganztaegig && !formData.halbtags && (
+                  <Stack direction="row" spacing={2}>
+                    <TextField
+                      label="Startzeit"
+                      type="time"
+                      value={formData.startzeit}
+                      onChange={(e) =>
+                        setFormData({ ...formData, startzeit: e.target.value })
+                      }
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                    />
+                    <TextField
+                      label="Endzeit"
+                      type="time"
+                      value={formData.endzeit}
+                      onChange={(e) =>
+                        setFormData({ ...formData, endzeit: e.target.value })
+                      }
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Stack>
+                )}
+
+                <TextField
+                  select
+                  label="Kategorie"
+                  value={formData.kategorie || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, kategorie: e.target.value || null })
+                  }
+                  fullWidth
+                >
+                  <MenuItem value="">Keine</MenuItem>
+                  {kategorien.map((kat) => (
+                    <MenuItem key={kat.id} value={kat.id}>
+                      {kat.bezeichnung} ({kat.abkuerzung})
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  label="Beschreibung"
+                  value={formData.beschreibung}
+                  onChange={(e) =>
+                    setFormData({ ...formData, beschreibung: e.target.value })
+                  }
+                  fullWidth
+                  multiline
+                  rows={3}
+                />
+              </>
             )}
-
-            <TextField
-              select
-              label="Kategorie"
-              value={formData.kategorie || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, kategorie: e.target.value || null })
-              }
-              fullWidth
-            >
-              <MenuItem value="">Keine</MenuItem>
-              {kategorien.map((kat) => (
-                <MenuItem key={kat.id} value={kat.id}>
-                  {kat.bezeichnung} ({kat.abkuerzung})
-                </MenuItem>
-              ))}
-            </TextField>
-
-            <TextField
-              label="Beschreibung"
-              value={formData.beschreibung}
-              onChange={(e) =>
-                setFormData({ ...formData, beschreibung: e.target.value })
-              }
-              fullWidth
-              multiline
-              rows={3}
-            />
           </Stack>
         </DialogContent>
         <DialogActions>

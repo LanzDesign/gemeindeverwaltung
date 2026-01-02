@@ -140,13 +140,26 @@ class Mitarbeitereintrag(models.Model):
 
     @property
     def dauer_tage(self):
-        """Berechnet die Anzahl der Tage"""
+        """Berechnet die Anzahl der Tage (ohne Feiertage)"""
+        from .services import FeiertagService
+        from datetime import timedelta
+        
         if self.datum_ende and self.datum_ende != self.datum_start:
-            tage = (self.datum_ende - self.datum_start).days + 1
+            # Zähle Arbeitstage (ohne Wochenenden und Feiertage)
+            tage_count = 0
+            current = self.datum_start
+            while current <= self.datum_ende:
+                # Prüfe: ist nicht Samstag (5) oder Sonntag (6) und kein Feiertag
+                if current.weekday() < 5:  # Mo-Fr
+                    if not FeiertagService.ist_feiertag(current):
+                        tage_count += 1
+                current += timedelta(days=1)
+            
             if self.halbtags:
-                return tage * 0.5
-            return tage
+                return tage_count * 0.5
+            return tage_count
         return 0.5 if self.halbtags else 1
+
 
     def save(self, *args, **kwargs):
         """Berechne Urlaubstage automatisch"""
