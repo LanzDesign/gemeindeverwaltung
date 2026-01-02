@@ -286,6 +286,7 @@ function MemberEdit() {
         reset({
           first_name: member.first_name || "",
           last_name: member.last_name || "",
+          gender: member.gender || "",
           email: member.email || "",
           phone: member.phone || "",
           street: member.street || "",

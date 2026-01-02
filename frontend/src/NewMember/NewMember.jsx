@@ -268,6 +268,19 @@ function NewMember() {
 
               <Grid item xs={12}>
                 <TextField
+                  select
+                  fullWidth
+                  label="Geschlecht"
+                  {...register("gender")}
+                >
+                  <MenuItem value="">Nicht angegeben</MenuItem>
+                  <MenuItem value="male">Männlich</MenuItem>
+                  <MenuItem value="female">Weiblich</MenuItem>
+                </TextField>
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
                   fullWidth
                   label="Geburtsdatum"
                   type="date"
