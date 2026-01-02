@@ -61,6 +61,7 @@ function PublicRegistration() {
   const [person, setPerson] = useState({
     first_name: "",
     last_name: "",
+    gender: "",
     email: "",
     phone: "",
     street: "",
@@ -112,7 +113,7 @@ function PublicRegistration() {
   const addChild = () => {
     setChildren((prev) => [
       ...prev,
-      { first_name: "", last_name: person.last_name, date_of_birth: "" },
+      { first_name: "", last_name: person.last_name, gender: "", date_of_birth: "" },
     ]);
   };
 
@@ -519,6 +520,21 @@ function PublicRegistration() {
             <Grid item xs={12}>
               <TextField
                 fullWidth
+                select
+                label="Geschlecht"
+                name="gender"
+                value={person.gender}
+                onChange={handlePersonChange}
+              >
+                <MenuItem value="">Bitte wählen</MenuItem>
+                <MenuItem value="male">Männlich</MenuItem>
+                <MenuItem value="female">Weiblich</MenuItem>
+              </TextField>
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
                 type="date"
                 label="Geburtsdatum"
                 InputLabelProps={{ shrink: true }}
@@ -760,6 +776,22 @@ function PublicRegistration() {
                         handleChildChange(index, "last_name", e.target.value)
                       }
                     />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      select
+                      label="Geschlecht"
+                      value={child.gender || ""}
+                      onChange={(e) =>
+                        handleChildChange(index, "gender", e.target.value)
+                      }
+                    >
+                      <MenuItem value="">Bitte wählen</MenuItem>
+                      <MenuItem value="male">Männlich</MenuItem>
+                      <MenuItem value="female">Weiblich</MenuItem>
+                    </TextField>
                   </Grid>
                   <Grid item xs={12}>
                     <TextField

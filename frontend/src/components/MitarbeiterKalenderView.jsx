@@ -64,7 +64,8 @@ export default function MitarbeiterKalenderView() {
   const [selectedMitarbeiter, setSelectedMitarbeiter] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [mitarbeiterDetailsOpen, setMitarbeiterDetailsOpen] = useState(false);
-  const [selectedMitarbeiterDetails, setSelectedMitarbeiterDetails] = useState(null);
+  const [selectedMitarbeiterDetails, setSelectedMitarbeiterDetails] =
+    useState(null);
   const [detailsTimeRange, setDetailsTimeRange] = useState("month"); // "day", "week", "month"
   const [formData, setFormData] = useState({
     typ: "termin",
@@ -116,7 +117,10 @@ export default function MitarbeiterKalenderView() {
       const dayOfWeek = date.getDay();
       const weekdayMondayStart = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       // Verwende manuelle Formatierung statt toISOString() um Timezone-Probleme zu vermeiden
-      const dateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      const dateString = `${year}-${String(month + 1).padStart(
+        2,
+        "0"
+      )}-${String(d).padStart(2, "0")}`;
 
       // Feiertag prüfen
       const feiertag = feiertage.find((ft) => ft.datum === dateString);
@@ -213,11 +217,15 @@ export default function MitarbeiterKalenderView() {
       setDialogOpen(false);
       loadData();
     } catch (error) {
-      console.error("Fehler beim Speichern:", error.response?.data || error.message);
-      const errorMsg = error.response?.data?.detail || 
-                       error.response?.data?.non_field_errors?.[0] ||
-                       error.response?.data?.typ?.[0] ||
-                       "Fehler beim Speichern";
+      console.error(
+        "Fehler beim Speichern:",
+        error.response?.data || error.message
+      );
+      const errorMsg =
+        error.response?.data?.detail ||
+        error.response?.data?.non_field_errors?.[0] ||
+        error.response?.data?.typ?.[0] ||
+        "Fehler beim Speichern";
       alert(`Fehler: ${errorMsg}`);
     }
   };
@@ -243,12 +251,14 @@ export default function MitarbeiterKalenderView() {
   };
 
   const getFilteredEntriesForMitarbeiter = (mitarbeiterId) => {
-    const filtered = eintraege.filter(e => e.mitarbeiter === mitarbeiterId);
-    
+    const filtered = eintraege.filter((e) => e.mitarbeiter === mitarbeiterId);
+
     if (detailsTimeRange === "day") {
       const today = new Date().toISOString().split("T")[0];
-      return filtered.filter(e => {
-        return e.datum_start <= today && (e.datum_ende || e.datum_start) >= today;
+      return filtered.filter((e) => {
+        return (
+          e.datum_start <= today && (e.datum_ende || e.datum_start) >= today
+        );
       });
     } else if (detailsTimeRange === "week") {
       const today = new Date();
@@ -258,15 +268,21 @@ export default function MitarbeiterKalenderView() {
       weekEnd.setDate(weekStart.getDate() + 6); // Sonntag
       const startStr = weekStart.toISOString().split("T")[0];
       const endStr = weekEnd.toISOString().split("T")[0];
-      return filtered.filter(e => {
-        return e.datum_start <= endStr && (e.datum_ende || e.datum_start) >= startStr;
+      return filtered.filter((e) => {
+        return (
+          e.datum_start <= endStr && (e.datum_ende || e.datum_start) >= startStr
+        );
       });
-    } else { // month
+    } else {
+      // month
       const year = currentDate.getFullYear();
       const month = String(currentDate.getMonth() + 1).padStart(2, "0");
       const monthStr = `${year}-${month}`;
-      return filtered.filter(e => {
-        return e.datum_start.startsWith(monthStr) || (e.datum_ende && e.datum_ende.startsWith(monthStr));
+      return filtered.filter((e) => {
+        return (
+          e.datum_start.startsWith(monthStr) ||
+          (e.datum_ende && e.datum_ende.startsWith(monthStr))
+        );
       });
     }
   };
@@ -321,7 +337,9 @@ export default function MitarbeiterKalenderView() {
             return (
               <Tooltip
                 key={idx}
-                title={`${entry.titel}${isHalbtags ? ' (halbtags)' : isGanztags ? ' (ganztags)' : ''} (${entry.datum_start}${
+                title={`${entry.titel}${
+                  isHalbtags ? " (halbtags)" : isGanztags ? " (ganztags)" : ""
+                } (${entry.datum_start}${
                   entry.datum_ende && entry.datum_ende !== entry.datum_start
                     ? " - " + entry.datum_ende
                     : ""
@@ -346,7 +364,7 @@ export default function MitarbeiterKalenderView() {
                     lineHeight: 1.2,
                     cursor: "pointer",
                     width: isHalbtags ? "50%" : isGanztags ? "100%" : "auto",
-                    backgroundImage: isHalbtags 
+                    backgroundImage: isHalbtags
                       ? `linear-gradient(to right, ${color} 50%, transparent 50%)`
                       : "none",
                     "&:hover": {
@@ -618,10 +636,10 @@ export default function MitarbeiterKalenderView() {
                     checked={formData.ganztaegig}
                     onChange={(e) => {
                       const isChecked = e.target.checked;
-                      setFormData({ 
-                        ...formData, 
+                      setFormData({
+                        ...formData,
                         ganztaegig: isChecked,
-                        halbtags: isChecked ? false : formData.halbtags
+                        halbtags: isChecked ? false : formData.halbtags,
                       });
                     }}
                   />
@@ -634,10 +652,10 @@ export default function MitarbeiterKalenderView() {
                     checked={formData.halbtags}
                     onChange={(e) => {
                       const isChecked = e.target.checked;
-                      setFormData({ 
-                        ...formData, 
+                      setFormData({
+                        ...formData,
                         halbtags: isChecked,
-                        ganztaegig: isChecked ? false : formData.ganztaegig
+                        ganztaegig: isChecked ? false : formData.ganztaegig,
                       });
                     }}
                   />
@@ -724,11 +742,20 @@ export default function MitarbeiterKalenderView() {
         fullWidth
       >
         <DialogTitle>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
             <div>
               {selectedMitarbeiterDetails?.vollstaendiger_name}
-              <Typography variant="caption" display="block" color="text.secondary">
-                Urlaub: {selectedMitarbeiterDetails?.urlaubstage_verfuegbar}/{selectedMitarbeiterDetails?.urlaubstage_gesamt} Tage verfügbar
+              <Typography
+                variant="caption"
+                display="block"
+                color="text.secondary"
+              >
+                Urlaub: {selectedMitarbeiterDetails?.urlaubstage_verfuegbar}/
+                {selectedMitarbeiterDetails?.urlaubstage_gesamt} Tage verfügbar
               </Typography>
             </div>
             <Stack direction="row" spacing={1}>
@@ -748,7 +775,9 @@ export default function MitarbeiterKalenderView() {
               </Button>
               <Button
                 size="small"
-                variant={detailsTimeRange === "month" ? "contained" : "outlined"}
+                variant={
+                  detailsTimeRange === "month" ? "contained" : "outlined"
+                }
                 onClick={() => setDetailsTimeRange("month")}
               >
                 Monat
@@ -757,108 +786,146 @@ export default function MitarbeiterKalenderView() {
           </Stack>
         </DialogTitle>
         <DialogContent>
-          {selectedMitarbeiterDetails && (() => {
-            const entries = getFilteredEntriesForMitarbeiter(selectedMitarbeiterDetails.id);
-            const sortedEntries = [...entries].sort((a, b) => 
-              new Date(b.datum_start) - new Date(a.datum_start)
-            );
-
-            if (sortedEntries.length === 0) {
-              return (
-                <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-                  Keine Einträge gefunden
-                </Typography>
+          {selectedMitarbeiterDetails &&
+            (() => {
+              const entries = getFilteredEntriesForMitarbeiter(
+                selectedMitarbeiterDetails.id
               );
-            }
+              const sortedEntries = [...entries].sort(
+                (a, b) => new Date(b.datum_start) - new Date(a.datum_start)
+              );
 
-            return (
-              <Stack spacing={2} sx={{ mt: 2 }}>
-                {sortedEntries.map((entry) => {
-                  const kat = kategorien.find((k) => k.id === entry.kategorie);
-                  const isMultiDay = entry.datum_ende && entry.datum_ende !== entry.datum_start;
-                  
-                  return (
-                    <Paper
-                      key={entry.id}
-                      sx={{
-                        p: 2,
-                        border: `2px solid ${kat?.farbe || "#6b7280"}`,
-                        borderRadius: 2,
-                        cursor: "pointer",
-                        "&:hover": {
-                          boxShadow: 2,
-                        },
-                      }}
-                      onClick={() => {
-                        setMitarbeiterDetailsOpen(false);
-                        handleEditEntry(entry);
-                      }}
-                    >
-                      <Stack direction="row" spacing={2} alignItems="flex-start">
-                        <Box
-                          sx={{
-                            width: 60,
-                            height: 60,
-                            backgroundColor: kat?.farbe || "#6b7280",
-                            color: "white",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            borderRadius: 2,
-                            fontWeight: "bold",
-                            fontSize: "1.5rem",
-                          }}
+              if (sortedEntries.length === 0) {
+                return (
+                  <Typography
+                    color="text.secondary"
+                    align="center"
+                    sx={{ py: 4 }}
+                  >
+                    Keine Einträge gefunden
+                  </Typography>
+                );
+              }
+
+              return (
+                <Stack spacing={2} sx={{ mt: 2 }}>
+                  {sortedEntries.map((entry) => {
+                    const kat = kategorien.find(
+                      (k) => k.id === entry.kategorie
+                    );
+                    const isMultiDay =
+                      entry.datum_ende &&
+                      entry.datum_ende !== entry.datum_start;
+
+                    return (
+                      <Paper
+                        key={entry.id}
+                        sx={{
+                          p: 2,
+                          border: `2px solid ${kat?.farbe || "#6b7280"}`,
+                          borderRadius: 2,
+                          cursor: "pointer",
+                          "&:hover": {
+                            boxShadow: 2,
+                          },
+                        }}
+                        onClick={() => {
+                          setMitarbeiterDetailsOpen(false);
+                          handleEditEntry(entry);
+                        }}
+                      >
+                        <Stack
+                          direction="row"
+                          spacing={2}
+                          alignItems="flex-start"
                         >
-                          {kat?.abkuerzung || "?"}
-                        </Box>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="h6" gutterBottom>
-                            {entry.titel}
-                          </Typography>
-                          <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ mb: 1 }}>
-                            <Chip
-                              label={isMultiDay 
-                                ? `${entry.datum_start} bis ${entry.datum_ende}`
-                                : entry.datum_start
-                              }
-                              size="small"
-                              color="primary"
-                              variant="outlined"
-                            />
-                            {entry.ganztaegig && (
-                              <Chip label="Ganztägig" size="small" color="success" />
-                            )}
-                            {entry.halbtags && (
-                              <Chip label="Halbtags" size="small" color="warning" />
-                            )}
-                            {!entry.ganztaegig && !entry.halbtags && entry.startzeit && (
+                          <Box
+                            sx={{
+                              width: 60,
+                              height: 60,
+                              backgroundColor: kat?.farbe || "#6b7280",
+                              color: "white",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              borderRadius: 2,
+                              fontWeight: "bold",
+                              fontSize: "1.5rem",
+                            }}
+                          >
+                            {kat?.abkuerzung || "?"}
+                          </Box>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="h6" gutterBottom>
+                              {entry.titel}
+                            </Typography>
+                            <Stack
+                              direction="row"
+                              spacing={2}
+                              flexWrap="wrap"
+                              sx={{ mb: 1 }}
+                            >
                               <Chip
-                                label={`${entry.startzeit} - ${entry.endzeit}`}
+                                label={
+                                  isMultiDay
+                                    ? `${entry.datum_start} bis ${entry.datum_ende}`
+                                    : entry.datum_start
+                                }
                                 size="small"
+                                color="primary"
                                 variant="outlined"
                               />
+                              {entry.ganztaegig && (
+                                <Chip
+                                  label="Ganztägig"
+                                  size="small"
+                                  color="success"
+                                />
+                              )}
+                              {entry.halbtags && (
+                                <Chip
+                                  label="Halbtags"
+                                  size="small"
+                                  color="warning"
+                                />
+                              )}
+                              {!entry.ganztaegig &&
+                                !entry.halbtags &&
+                                entry.startzeit && (
+                                  <Chip
+                                    label={`${entry.startzeit} - ${entry.endzeit}`}
+                                    size="small"
+                                    variant="outlined"
+                                  />
+                                )}
+                              <Chip
+                                label={`${entry.dauer_tage} Tag${
+                                  entry.dauer_tage !== 1 ? "e" : ""
+                                }`}
+                                size="small"
+                              />
+                            </Stack>
+                            {entry.beschreibung && (
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                {entry.beschreibung}
+                              </Typography>
                             )}
-                            <Chip
-                              label={`${entry.dauer_tage} Tag${entry.dauer_tage !== 1 ? 'e' : ''}`}
-                              size="small"
-                            />
-                          </Stack>
-                          {entry.beschreibung && (
-                            <Typography variant="body2" color="text.secondary">
-                              {entry.beschreibung}
-                            </Typography>
-                          )}
-                        </Box>
-                      </Stack>
-                    </Paper>
-                  );
-                })}
-              </Stack>
-            );
-          })()}
+                          </Box>
+                        </Stack>
+                      </Paper>
+                    );
+                  })}
+                </Stack>
+              );
+            })()}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setMitarbeiterDetailsOpen(false)}>Schließen</Button>
+          <Button onClick={() => setMitarbeiterDetailsOpen(false)}>
+            Schließen
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

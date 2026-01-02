@@ -61,7 +61,7 @@ export default function RaumbelegungsplanView() {
   const [editingBelegung, setEditingBelegung] = useState(null);
   const [selectedRaum, setSelectedRaum] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
-  
+
   const [formData, setFormData] = useState({
     raum: "",
     titel: "",
@@ -125,9 +125,10 @@ export default function RaumbelegungsplanView() {
     const dateKey = formatDateKey(day);
     if (!dateKey) return [];
     return belegungen.filter(
-      (b) => b.raum === raum.id && 
-      (b.datum_start === dateKey || 
-       (b.datum_ende && dateKey >= b.datum_start && dateKey <= b.datum_ende))
+      (b) =>
+        b.raum === raum.id &&
+        (b.datum_start === dateKey ||
+          (b.datum_ende && dateKey >= b.datum_start && dateKey <= b.datum_ende))
     );
   };
 
@@ -173,10 +174,12 @@ export default function RaumbelegungsplanView() {
     try {
       // Validiere erforderliche Felder
       if (!formData.raum || !formData.titel || !formData.datum_start) {
-        alert("Bitte füllen Sie alle erforderlichen Felder aus (Raum, Titel, Datum)");
+        alert(
+          "Bitte füllen Sie alle erforderlichen Felder aus (Raum, Titel, Datum)"
+        );
         return;
       }
-      
+
       if (editingBelegung) {
         await axiosInstance.put(
           `/raumbelegungen/${editingBelegung.id}/`,
@@ -188,8 +191,14 @@ export default function RaumbelegungsplanView() {
       setDialogOpen(false);
       loadData();
     } catch (error) {
-      console.error("Fehler beim Speichern:", error.response?.data || error.message);
-      const errorMsg = error.response?.data?.detail || error.response?.data?.non_field_errors?.[0] || "Fehler beim Speichern";
+      console.error(
+        "Fehler beim Speichern:",
+        error.response?.data || error.message
+      );
+      const errorMsg =
+        error.response?.data?.detail ||
+        error.response?.data?.non_field_errors?.[0] ||
+        "Fehler beim Speichern";
       alert(`Fehler: ${errorMsg}`);
     }
   };
@@ -205,7 +214,9 @@ export default function RaumbelegungsplanView() {
   };
 
   const days = generateCalendarDays();
-  const monthTitle = `${MONTH_NAMES[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+  const monthTitle = `${
+    MONTH_NAMES[currentDate.getMonth()]
+  } ${currentDate.getFullYear()}`;
 
   return (
     <Box sx={{ p: 2 }}>
@@ -307,7 +318,10 @@ export default function RaumbelegungsplanView() {
                           >
                             {dayNum && (
                               <>
-                                <Typography variant="caption" sx={{ fontWeight: "bold" }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ fontWeight: "bold" }}
+                                >
                                   {dayNum}
                                 </Typography>
                                 <Box sx={{ mt: 0.5 }}>
@@ -369,7 +383,12 @@ export default function RaumbelegungsplanView() {
       ))}
 
       {/* Dialog für neue/bearbeitete Buchung */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>
           {editingBelegung ? "Buchung bearbeiten" : "Neue Buchung"}
         </DialogTitle>
@@ -380,9 +399,7 @@ export default function RaumbelegungsplanView() {
             margin="normal"
             select
             value={formData.raum}
-            onChange={(e) =>
-              setFormData({ ...formData, raum: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, raum: e.target.value })}
           >
             {raeume.map((r) => (
               <MenuItem key={r.id} value={r.id}>

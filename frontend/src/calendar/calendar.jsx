@@ -353,12 +353,18 @@ export default function ModernCalendar({ type = "gemeinde" }) {
           : type === "mitarbeiter"
           ? "mitarbeitertermine"
           : "raumbelegungen";
-      
+
       // Sichere Datumformatierung um Timezone-Probleme zu vermeiden
-      const datumStr = selectedDate instanceof Date 
-        ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
-        : formatDate(selectedDate);
-      
+      const datumStr =
+        selectedDate instanceof Date
+          ? `${selectedDate.getFullYear()}-${String(
+              selectedDate.getMonth() + 1
+            ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(
+              2,
+              "0"
+            )}`
+          : formatDate(selectedDate);
+
       const eventData = {
         titel: eventTitle,
         datum: datumStr,
@@ -389,8 +395,17 @@ export default function ModernCalendar({ type = "gemeinde" }) {
       handleCloseEventDialog();
       loadEvents();
     } catch (error) {
-      console.error("Fehler beim Speichern:", error.response?.data || error.message);
-      alert(`Fehler: ${error.response?.data?.detail || error.response?.data?.non_field_errors?.[0] || "Fehler beim Speichern"}`);
+      console.error(
+        "Fehler beim Speichern:",
+        error.response?.data || error.message
+      );
+      alert(
+        `Fehler: ${
+          error.response?.data?.detail ||
+          error.response?.data?.non_field_errors?.[0] ||
+          "Fehler beim Speichern"
+        }`
+      );
     }
   };
 

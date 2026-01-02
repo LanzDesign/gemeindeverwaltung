@@ -33,9 +33,15 @@ class Member(models.Model):
         ('guest', 'Gast'),
     ]
     
+    GENDER_CHOICES = [
+        ('male', 'Männlich'),
+        ('female', 'Weiblich'),
+    ]
+    
     # --- Persönliche Daten ---
     last_name = models.CharField("Familienname", max_length=100)
     first_name = models.CharField("Name (Vorname)", max_length=100)
+    gender = models.CharField("Geschlecht", max_length=10, choices=GENDER_CHOICES, blank=True, default='')
     email = models.EmailField("E-Mail", blank=True, null=True)
     phone = models.CharField("Telefonnummer", max_length=20, blank=True)
     street = models.CharField("Straße", max_length=200, blank=True)

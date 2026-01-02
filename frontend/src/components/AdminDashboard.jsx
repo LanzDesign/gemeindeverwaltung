@@ -178,6 +178,8 @@ function AdminDashboard() {
   const [filterNoGroup, setFilterNoGroup] = useState(false);
   const [filterYouth, setFilterYouth] = useState(false);
   const [filterChild, setFilterChild] = useState(false);
+  const [filterMale, setFilterMale] = useState(false);
+  const [filterFemale, setFilterFemale] = useState(false);
   const [filterShowAll, setFilterShowAll] = useState(false);
   const [filterWithServices, setFilterWithServices] = useState(false);
   const [filterWithoutServices, setFilterWithoutServices] = useState(false);
@@ -212,6 +214,8 @@ function AdminDashboard() {
           ).length,
           youth: members.filter((m) => m.is_youth).length,
           children: members.filter((m) => m.is_child).length,
+          male: members.filter((m) => m.gender === "male").length,
+          female: members.filter((m) => m.gender === "female").length,
           inactive: members.filter((m) => m.status === "passive").length,
         });
         setAllMembers(members);
@@ -359,6 +363,8 @@ function AdminDashboard() {
         if (filterNonDonor && m.is_donor) return false;
         if (filterMember && !m.is_member) return false;
         if (filterYouth && !m.is_youth) return false;
+        if (filterMale && m.gender !== "male") return false;
+        if (filterFemale && m.gender !== "female") return false;
 
         // Filter children:
         // - If "Alle anzeigen" is active, show everyone (adults and children)
@@ -840,6 +846,32 @@ function AdminDashboard() {
         </Grid>
         <Grid item xs={6} sm={4} md={3}>
           <StatCard
+            title="Männlich"
+            value={stats.male}
+            icon={<PersonIcon />}
+            color="#1976d2"
+            onClick={() => {
+              setFilterMale(!filterMale);
+              setFilterFemale(false);
+            }}
+            isActive={filterMale}
+          />
+        </Grid>
+        <Grid item xs={6} sm={4} md={3}>
+          <StatCard
+            title="Weiblich"
+            value={stats.female}
+            icon={<PersonIcon />}
+            color="#d81b60"
+            onClick={() => {
+              setFilterFemale(!filterFemale);
+              setFilterMale(false);
+            }}
+            isActive={filterFemale}
+          />
+        </Grid>
+        <Grid item xs={6} sm={4} md={3}>
+          <StatCard
             title="Inaktive Mitglieder"
             value={stats.inactive}
             icon={<PersonIcon />}
@@ -1094,6 +1126,32 @@ function AdminDashboard() {
                   />
                 }
                 label="Kind"
+              />
+            </FormGroup>
+          </Grid>
+          <Grid item xs={6} md={1.5}>
+            <FormGroup>
+              <FormControlLabel
+                control={
+                  <MuiCheckbox
+                    checked={filterMale}
+                    onChange={(e) => setFilterMale(e.target.checked)}
+                  />
+                }
+                label="Männlich"
+              />
+            </FormGroup>
+          </Grid>
+          <Grid item xs={6} md={1.5}>
+            <FormGroup>
+              <FormControlLabel
+                control={
+                  <MuiCheckbox
+                    checked={filterFemale}
+                    onChange={(e) => setFilterFemale(e.target.checked)}
+                  />
+                }
+                label="Weiblich"
               />
             </FormGroup>
           </Grid>
