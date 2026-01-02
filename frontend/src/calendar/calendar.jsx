@@ -312,17 +312,31 @@ export default function ModernCalendar({ type = "gemeinde" }) {
     setSelectedDate(new Date(y, m - 1, d));
   };
 
-  const handleAddEvent = () => {
+  const handleAddEvent = (date = null, hour = null) => {
     setEditingEvent(null);
     setEventTitle("");
     setEventDescription("");
-    setEventStartTime("09:00");
-    setEventEndTime("10:00");
+    
+    // Setze Zeit basierend auf dem geklickten Zeitslot oder Standard
+    if (hour !== null) {
+      const startHour = String(hour).padStart(2, "0");
+      const endHour = String(hour + 1).padStart(2, "0");
+      setEventStartTime(`${startHour}:00`);
+      setEventEndTime(`${endHour}:00`);
+    } else {
+      setEventStartTime("09:00");
+      setEventEndTime("10:00");
+    }
+    
     setEventType("allgemein");
-    // Setze selectedDate auf heute falls nicht gesetzt
-    if (!selectedDate) {
+    
+    // Setze Datum basierend auf Parameter oder selectedDate oder heute
+    if (date) {
+      setSelectedDate(date);
+    } else if (!selectedDate) {
       setSelectedDate(new Date());
     }
+    
     setOpenEventDialog(true);
   };
 
@@ -832,6 +846,7 @@ export default function ModernCalendar({ type = "gemeinde" }) {
                       return (
                         <Box
                           key={dayIdx}
+                          onClick={() => handleAddEvent(date, hour)}
                           sx={{
                             flex: 1,
                             p: 0.5,
@@ -839,12 +854,22 @@ export default function ModernCalendar({ type = "gemeinde" }) {
                             borderColor: "divider",
                             bgcolor: date.getDay() === 0 ? colors.sundayBg : "transparent",
                             position: "relative",
+                            cursor: "pointer",
+                            transition: "background-color 0.2s",
+                            "&:hover": {
+                              bgcolor: date.getDay() === 0 
+                                ? alpha(colors.sundayBg, 0.5)
+                                : alpha(colors.primary, 0.05),
+                            },
                           }}
                         >
                           {dayEvents.map((event, eventIdx) => (
                             <Box
                               key={eventIdx}
-                              onClick={() => handleEditEvent(event)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditEvent(event);
+                              }}
                               sx={{
                                 p: 0.5,
                                 mb: 0.5,
@@ -932,16 +957,25 @@ export default function ModernCalendar({ type = "gemeinde" }) {
                       </Typography>
                     </Box>
                     <Box
+                      onClick={() => handleAddEvent(currentDate, hour)}
                       sx={{
                         flex: 1,
                         p: 1,
                         position: "relative",
+                        cursor: "pointer",
+                        transition: "background-color 0.2s",
+                        "&:hover": {
+                          bgcolor: alpha(colors.primary, 0.05),
+                        },
                       }}
                     >
                       {hourEvents.map((event, eventIdx) => (
                         <Box
                           key={eventIdx}
-                          onClick={() => handleEditEvent(event)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditEvent(event);
+                          }}
                           sx={{
                             p: 1.5,
                             mb: 1,
