@@ -164,6 +164,34 @@ export default function ModernCalendar({ type = "gemeinde" }) {
         if (!groupedEvents[event.datum]) groupedEvents[event.datum] = [];
         groupedEvents[event.datum].push(event);
       });
+
+      // Feiertage laden und hinzufügen
+      try {
+        const jahr = currentDate.getFullYear();
+        const feiertageResponse = await axiosInstance.get(`/feiertage/?jahr=${jahr}`);
+        const feiertage = feiertageResponse.data.feiertage || [];
+        
+        feiertage.forEach((holiday) => {
+          const datum = holiday.datum;
+          if (!groupedEvents[datum]) groupedEvents[datum] = [];
+          
+          // Feiertag als Ereignis hinzufügen
+          groupedEvents[datum].push({
+            id: `holiday-${datum}`,
+            titel: holiday.name,
+            datum: datum,
+            startzeit: "00:00",
+            endzeit: "23:59",
+            kategorie: "feiertag",
+            farbe: colors.feiertag,
+            beschreibung: "Feiertag",
+            is_holiday: true
+          });
+        });
+      } catch (error) {
+        console.error("Fehler beim Laden der Feiertage:", error);
+      }
+
       setEvents(groupedEvents);
     } catch (error) {
       console.error("Fehler beim Laden:", error);
@@ -1120,22 +1148,22 @@ export default function ModernCalendar({ type = "gemeinde" }) {
             <Chip
               label="Intern"
               size="small"
-              sx={{ bgcolor: alpha(colors.intern, 0.3) }}
+              sx={{ bgcolor: alpha(colors.intern, 0.9) }}
             />
             <Chip
               label="Extern"
               size="small"
-              sx={{ bgcolor: alpha(colors.extern, 0.3) }}
+              sx={{ bgcolor: alpha(colors.extern, 0.9) }}
             />
             <Chip
               label="Allgemein"
               size="small"
-              sx={{ bgcolor: alpha(colors.allgemein, 0.3) }}
+              sx={{ bgcolor: alpha(colors.allgemein, 0.9) }}
             />
             <Chip
               label="Feiertag"
               size="small"
-              sx={{ bgcolor: alpha(colors.feiertag, 0.3) }}
+              sx={{ bgcolor: alpha(colors.feiertag, 0.9) }}
             />
           </Stack>
         </Stack>
