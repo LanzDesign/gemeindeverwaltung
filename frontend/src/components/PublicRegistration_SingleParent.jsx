@@ -337,8 +337,15 @@ function PublicRegistration() {
       setRegisteredMember(response.data.person1);
       setSuccess(true);
     } catch (err) {
+      console.error("Registration error:", err);
+      console.error("Error response:", err.response);
+      console.error("Error response data:", err.response?.data);
+      console.error("Error response status:", err.response?.status);
       setError(
         err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.response?.data?.detail ||
+          JSON.stringify(err.response?.data) ||
           "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
       );
     } finally {
