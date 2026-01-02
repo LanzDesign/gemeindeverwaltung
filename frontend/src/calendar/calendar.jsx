@@ -849,6 +849,8 @@ export default function ModernCalendar({ type = "gemeinde" }) {
                           onClick={() => handleAddEvent(date, hour)}
                           sx={{
                             flex: 1,
+                            minWidth: 0,
+                            maxWidth: '100%',
                             p: 0.5,
                             borderLeft: dayIdx > 0 ? 1 : 0,
                             borderColor: "divider",
@@ -879,6 +881,8 @@ export default function ModernCalendar({ type = "gemeinde" }) {
                                 cursor: "pointer",
                                 fontSize: "0.75rem",
                                 overflow: "hidden",
+                                width: '100%',
+                                boxSizing: 'border-box',
                                 "&:hover": {
                                   bgcolor: getEventColor(event),
                                   transform: "scale(1.02)",
