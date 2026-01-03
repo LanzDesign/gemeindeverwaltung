@@ -120,7 +120,7 @@ class Mitarbeitereintrag(models.Model):
     ganztaegig = models.BooleanField(default=False)
     halbtags = models.BooleanField(default=False, help_text='Halber Tag (z.B. Vormittag oder Nachmittag)')
     typ = models.CharField(max_length=20, choices=TYP_CHOICES, default='termin')
-    titel = models.CharField(max_length=200)
+    titel = models.CharField(max_length=200, blank=True, default='')
     beschreibung = models.TextField(blank=True)
     kategorie = models.ForeignKey(MitarbeiterKategorie, on_delete=models.SET_NULL, null=True, blank=True, related_name='mitarbeiter_eintraege')
     erstellt_am = models.DateTimeField(auto_now_add=True)

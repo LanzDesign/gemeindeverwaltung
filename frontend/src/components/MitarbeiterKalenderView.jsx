@@ -585,20 +585,31 @@ export default function MitarbeiterKalenderView() {
               <>
                 <TextField
                   select
-                  label="Kategorie"
+                  label="Kategorie *"
                   value={formData.kategorie || ""}
                   onChange={(e) =>
                     setFormData({ ...formData, kategorie: e.target.value || null })
                   }
                   fullWidth
+                  required
                 >
-                  <MenuItem value="">Keine</MenuItem>
+                  <MenuItem value="">-- Bitte wählen --</MenuItem>
                   {kategorien.map((kat) => (
                     <MenuItem key={kat.id} value={kat.id}>
                       {kat.bezeichnung} ({kat.abkuerzung})
                     </MenuItem>
                   ))}
                 </TextField>
+
+                <TextField
+                  label="Titel (optional)"
+                  value={formData.titel}
+                  onChange={(e) =>
+                    setFormData({ ...formData, titel: e.target.value })
+                  }
+                  fullWidth
+                  placeholder="z.B. Jahresurlaub, Sonderurlaub"
+                />
 
                 <TextField
                   label="Beschreibung (optional)"
