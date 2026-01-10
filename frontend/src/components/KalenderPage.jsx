@@ -13,7 +13,6 @@ import {
 } from "@mui/material";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import ModernCalendar from "../calendar/calendar";
-import MitarbeiterKalenderView from "./MitarbeiterKalenderView";
 
 // Tab Panel Component
 function TabPanel(props) {
@@ -111,12 +110,8 @@ export default function KalenderPage() {
               id="kalender-tab-0"
             />
             <Tab
-              label={isMobile ? "👥 Mitarbeiter" : "👥 Mitarbeiterverwaltung"}
-              id="kalender-tab-1"
-            />
-            <Tab
               label={isMobile ? "🏢 Räume" : "🏢 Raumbelegungsplan"}
-              id="kalender-tab-2"
+              id="kalender-tab-1"
             />
           </Tabs>
         </Box>
@@ -132,19 +127,8 @@ export default function KalenderPage() {
           )}
         </TabPanel>
 
-        {/* Mitarbeitertermine */}
-        <TabPanel value={tabValue} index={1}>
-          {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <MitarbeiterKalenderView />
-          )}
-        </TabPanel>
-
         {/* Raumbelegungsplan */}
-        <TabPanel value={tabValue} index={2}>
+        <TabPanel value={tabValue} index={1}>
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
               <CircularProgress />

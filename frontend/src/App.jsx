@@ -42,6 +42,7 @@ import ProfilePage from "./components/ProfilePage";
 import PrivacyInfoPage from "./components/PrivacyInfoPage";
 import Jugendverwaltung from "./components/Jugendverwaltung";
 import KalenderPage from "./components/KalenderPage";
+import MitarbeiterKalenderPage from "./components/MitarbeiterKalenderPage";
 import RaumbelegungsplanView from "./components/RaumbelegungsplanView";
 import PublicRegistration from "./components/PublicRegistration_SingleParent";
 import { canAccessJugendverwaltung } from "./utils/auth";
@@ -95,6 +96,11 @@ function NavBar() {
     { text: "Gruppen verwalten", path: "/admin-dashboard/gruppen" },
     { text: "Familien verwalten", path: "/admin-dashboard/families" },
   ];
+
+  // Füge Mitarbeiterkalender hinzu, wenn Admin eingeloggt ist
+  if (isLoggedIn) {
+    menuItems.push({ text: "👨‍💼 Mitarbeiterkalender", path: "/mitarbeiterkalender" });
+  }
 
   // Füge Jugendverwaltung hinzu, wenn Berechtigung vorhanden
   if (canAccessJugendverwaltung()) {
@@ -351,6 +357,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <KalenderPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/mitarbeiterkalender"
+                    element={
+                      <ProtectedRoute>
+                        <MitarbeiterKalenderPage />
                       </ProtectedRoute>
                     }
                   />
