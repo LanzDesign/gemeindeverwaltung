@@ -205,7 +205,7 @@ export default function RaumbelegungsplanExcel() {
   };
 
   const handleBookingClick = (booking) => {
-    setEditing(booking.id);
+    setEditing(booking);
     setFormData({
       raum: booking.raum,
       titel: booking.titel,
@@ -227,7 +227,7 @@ export default function RaumbelegungsplanExcel() {
   const handleDelete = async () => {
     if (!editing) return;
     try {
-      await axiosInstance.delete(`/raumbelegungen/${id}/`);
+      await axiosInstance.delete(`/raumbelegungen/${editing.id}/`);
       setMessage("Termin gelöscht");
       setDialogOpen(false);
       setEditing(null);
