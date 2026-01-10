@@ -300,10 +300,22 @@ function GruppenPage() {
         });
         console.log("=== GruppenPage: Loaded Members ===");
         console.log("Total members:", membersResp.data.length);
-        console.log("Members without groups:", membersResp.data.filter(
+        
+        const membersWithIsMember = membersResp.data.filter(m => m.is_member);
+        console.log("Members with is_member=true:", membersWithIsMember.length);
+        
+        const membersWithoutGroups = membersResp.data.filter(
           (m) => m.is_member && (!m.gruppen || m.gruppen.length === 0)
-        ).length);
-        console.log("Sample member:", membersResp.data[0]);
+        );
+        console.log("Members without groups (filtered):", membersWithoutGroups.length);
+        
+        // Show first 5 members details
+        console.log("First 5 members sample:");
+        membersResp.data.slice(0, 5).forEach((m, i) => {
+          console.log(`  ${i+1}. ${m.first_name} ${m.last_name}:`);
+          console.log(`     is_member: ${m.is_member}, gruppen: ${JSON.stringify(m.gruppen)}`);
+        });
+        
         setAllMembers(membersResp.data);
       } catch (error) {
         console.error("Fehler beim Laden der Mitglieder:", error);
