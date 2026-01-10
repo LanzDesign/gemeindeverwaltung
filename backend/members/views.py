@@ -86,11 +86,6 @@ class MemberViewSet(viewsets.ModelViewSet):
     
     def update(self, request, *args, **kwargs):
         try:
-            print("=== Member Update Request ===")
-            print("Member ID:", kwargs.get('pk'))
-            print("Data Keys:", request.data.keys() if hasattr(request.data, 'keys') else 'N/A')
-            print("Gender value:", request.data.get('gender', 'NOT_PRESENT'))
-            print("Content-Type:", request.content_type)
             return super().update(request, *args, **kwargs)
         except Exception as e:
             print("=== ERROR in MemberViewSet.update ===")

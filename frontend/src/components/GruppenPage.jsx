@@ -130,7 +130,6 @@ function PrivacyIcons({ member }) {
 }
 
 function GruppenPage() {
-  console.log("🔴 GruppenPage COMPONENT MOUNTED");
   const navigate = useNavigate();
   const [gruppen, setGruppen] = useState([]);
   const [allMembers, setAllMembers] = useState([]);
