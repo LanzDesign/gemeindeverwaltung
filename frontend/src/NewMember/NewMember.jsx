@@ -88,6 +88,7 @@ function NewMember() {
   } = useForm({
     defaultValues: {
       status: "active",
+      gender: "",
       is_member: false,
       is_donor: false,
       is_youth: false,
