@@ -51,6 +51,7 @@ def public_register(request):
             person1_data = {
                 'first_name': data.get('person1_first_name', ''),
                 'last_name': data.get('person1_last_name', ''),
+                'gender': data.get('person1_gender', ''),
                 'email': data.get('person1_email', ''),
                 'phone': data.get('person1_phone', ''),
                 'street': data.get('person1_street', ''),
@@ -117,6 +118,7 @@ def public_register(request):
                 person2_data = {
                     'first_name': data.get('person2_first_name', ''),
                     'last_name': data.get('person2_last_name', ''),
+                    'gender': data.get('person2_gender', ''),
                     'email': data.get('person2_email', ''),
                     'phone': data.get('person2_phone', ''),
                     'street': data.get('person2_street', ''),
@@ -229,6 +231,7 @@ def public_register(request):
                 child_member_data = {
                     'first_name': child_data.get('first_name', ''),
                     'last_name': child_data.get('last_name', primary_person.last_name),
+                    'gender': child_data.get('gender', ''),
                     'date_of_birth': child_data.get('date_of_birth'),
                     'status': 'guest',
                     'is_member': False,
