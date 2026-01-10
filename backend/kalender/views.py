@@ -57,7 +57,12 @@ class GemeindeterminViewSet(viewsets.ModelViewSet):
     """ViewSet für Gemeindetermine"""
     queryset = Gemeindetermin.objects.all()
     serializer_class = GemeindeterminSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        """Lesen öffentlich, Schreiben nur authentifiziert"""
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
 
     def perform_create(self, serializer):
         serializer.save(erstellt_von=self.request.user)
@@ -77,11 +82,20 @@ class RaumbelegungViewSet(viewsets.ModelViewSet):
     """ViewSet für Raumbelegungen mit Überschneidungsprüfung"""
     queryset = Raumbelegung.objects.all()
     serializer_class = RaumbelegungSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        """Lesen öffentlich, Schreiben nur authentifiziert"""
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
 
     def perform_create(self, serializer):
         """Erstelle neue Raumbelegung mit Überschneidungsprüfung"""
-        raumbelegung = serializer.save(erstellt_von=self.request.user)
+        # Setze erstellt_von nur wenn User authentifiziert ist
+        if self.request.user.is_authenticated:
+            raumbelegung = serializer.save(erstellt_von=self.request.user)
+        else:
+            raumbelegung = serializer.save()
         
         # Prüfe auf Überschneidungen nach dem Speichern
         # (da wir die ManyToMany Räume brauchen)
@@ -115,4 +129,9 @@ class RaumViewSet(viewsets.ModelViewSet):
     """ViewSet für Räume"""
     queryset = Raum.objects.all()
     serializer_class = RaumSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        """Lesen öffentlich, Schreiben nur authentifiziert"""
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
