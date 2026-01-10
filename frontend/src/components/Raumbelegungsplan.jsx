@@ -1,88 +1,68 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Paper,
   Typography,
-  Button,
   IconButton,
-  TextField,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Alert,
-  Grid,
-  Card,
-  CardContent,
+  TextField,
+  MenuItem,
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
   Stack,
   Chip,
-  Container,
+  Alert,
 } from "@mui/material";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Add,
-  Edit,
-  Delete,
-  Warning,
-  Close,
-  Download,
-} from "@mui/icons-material";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import CloseIcon from "@mui/icons-material/Close";
 import axiosInstance from "../api/axios";
-import * as XLSX from "xlsx";
 
-const MONTH_NAMES = [
-  "Januar", "Februar", "März", "April", "Mai", "Juni",
-  "Juli", "August", "September", "Oktober", "November", "Dezember",
-];
-
-// Farben für Kategorien
-const KATEGORIE_FARBEN = {
-  F: "#ef4444",      // Feiertag - Rot
-  T: "#2563eb",      // Termin - Blau
-  W: "#eab308",      // Wiederholend - Gelb
-  FT: "#9333ea",     // Festgelegt - Lila
+const HOURS = Array.from({ length: 17 }, (_, i) => 6 + i); // 06:00 bis 22:00
+const COLORS = {
+  termin: "#2563eb", // Blau
+  fest: "#9333ea", // Lila
+  wiederholung: "#eab308", // Gelb
 };
 
 export default function RaumbelegungsplanExcel() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [raeume, setRaeume] = useState([]);
   const [buchungen, setBuchungen] = useState([]);
-  const [holidays, setHolidays] = useState({});
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [dayViewOpen, setDayViewOpen] = useState(false);
-  const [dayViewBookings, setDayViewBookings] = useState([]);
-
-  // Dialog States
-  const [newTerminDialogOpen, setNewTerminDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-
-  // Form States
-  const [editingId, setEditingId] = useState(null);
+  const [holidays, setHolidays] = useState([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     raum: [],
     titel: "",
     kontaktperson: "",
     telefon: "",
     teilnehmerzahl: "",
-    datum_start: "",
-    datum_ende: "",
     startzeit: "09:00",
-    endzeit: "17:00",
+    endzeit: "11:00",
+    datum_start: new Date().toISOString().slice(0, 10),
+    datum_ende: "",
     kategorie: "termin",
     wiederholung: "keine",
     wiederholung_bis: "",
     beschreibung: "",
   });
-
-  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -90,571 +70,346 @@ export default function RaumbelegungsplanExcel() {
 
   const loadData = async () => {
     try {
-      const [raeume_res, buchungen_res, holidays_res] = await Promise.all([
+      const jahr = currentDate.getFullYear();
+      const monat = currentDate.getMonth() + 1;
+      const [raumRes, buchRes, feiertageRes] = await Promise.all([
         axiosInstance.get("/kalender/raum/"),
         axiosInstance.get("/kalender/raumbelegung/"),
-        axiosInstance.get("/kalender/feiertage/?jahr=" + currentDate.getFullYear() + "&monat=" + (currentDate.getMonth() + 1)),
+        axiosInstance.get(`/kalender/feiertage/?jahr=${jahr}&monat=${monat}`),
       ]);
-
-      setRaeume(raeume_res.data);
-      setBuchungen(buchungen_res.data);
-
-      // Organisiere Feiertage nach Datum
-      const feiertageMap = {};
-      holidays_res.data.feiertage?.forEach((f) => {
-        feiertageMap[f.datum] = f;
-      });
-      setHolidays(feiertageMap);
-    } catch (error) {
-      console.error("Fehler beim Laden der Daten:", error);
-      setErrorMessage("Fehler beim Laden der Daten");
+      setRaeume(raumRes.data);
+      setBuchungen(buchRes.data);
+      setHolidays(feiertageRes.data.feiertage || []);
+    } catch (err) {
+      setError("Daten konnten nicht geladen werden");
     }
   };
 
-  const getDaysInMonth = () => {
-    return new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-  };
+  const dayString = useMemo(() => {
+    return currentDate.toISOString().slice(0, 10);
+  }, [currentDate]);
 
-  const getFirstDayOfMonth = () => {
-    return new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
-  };
-
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
-  };
-
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
-  };
-
-  const handleDayClick = (day) => {
-    const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-    const dateStr = clickedDate.toISOString().split("T")[0];
-
-    // Hole Buchungen für diesen Tag
-    const bookingsForDay = buchungen.filter((b) => {
-      const bStart = new Date(b.datum_start);
-      const bEnd = b.datum_ende ? new Date(b.datum_ende) : bStart;
-      return clickedDate >= bStart && clickedDate <= bEnd;
+  const bookingsForDay = useMemo(() => {
+    return buchungen.filter((b) => {
+      const start = b.datum_start;
+      const end = b.datum_ende || b.datum_start;
+      return dayString >= start && dayString <= end;
     });
+  }, [buchungen, dayString]);
 
-    setSelectedDate(dateStr);
-    setDayViewBookings(bookingsForDay);
-    setDayViewOpen(true);
+  const handlePrevDay = () => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() - 1);
+    setCurrentDate(d);
   };
 
-  const handleNewTermin = () => {
-    setFormData({
-      raum: [],
-      titel: "",
-      kontaktperson: "",
-      telefon: "",
-      teilnehmerzahl: "",
-      datum_start: selectedDate || "",
+  const handleNextDay = () => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() + 1);
+    setCurrentDate(d);
+  };
+
+  const handleCellClick = (raumId, hour) => {
+    setFormData((prev) => ({
+      ...prev,
+      raum: [raumId],
+      datum_start: dayString,
       datum_ende: "",
-      startzeit: "09:00",
-      endzeit: "17:00",
-      kategorie: "termin",
-      wiederholung: "keine",
-      wiederholung_bis: "",
-      beschreibung: "",
-    });
-    setEditingId(null);
-    setNewTerminDialogOpen(true);
+      startzeit: `${String(hour).padStart(2, "0")}:00`,
+      endzeit: `${String(hour + 1).padStart(2, "0")}:00`,
+    }));
+    setEditing(null);
+    setDialogOpen(true);
   };
 
-  const handleEditTermin = (buchung) => {
+  const handleBookingClick = (booking) => {
+    setEditing(booking.id);
     setFormData({
-      raum: buchung.raum,
-      titel: buchung.titel,
-      kontaktperson: buchung.kontaktperson,
-      telefon: buchung.telefon,
-      teilnehmerzahl: buchung.teilnehmerzahl || "",
-      datum_start: buchung.datum_start,
-      datum_ende: buchung.datum_ende || "",
-      startzeit: buchung.startzeit,
-      endzeit: buchung.endzeit,
-      kategorie: buchung.kategorie,
-      wiederholung: buchung.wiederholung,
-      wiederholung_bis: buchung.wiederholung_bis || "",
-      beschreibung: buchung.beschreibung,
+      raum: booking.raum,
+      titel: booking.titel,
+      kontaktperson: booking.kontaktperson,
+      telefon: booking.telefon,
+      teilnehmerzahl: booking.teilnehmerzahl || "",
+      startzeit: booking.startzeit,
+      endzeit: booking.endzeit,
+      datum_start: booking.datum_start,
+      datum_ende: booking.datum_ende || "",
+      kategorie: booking.kategorie,
+      wiederholung: booking.wiederholung,
+      wiederholung_bis: booking.wiederholung_bis || "",
+      beschreibung: booking.beschreibung || "",
     });
-    setEditingId(buchung.id);
-    setEditDialogOpen(true);
+    setDialogOpen(true);
   };
 
-  const handleDeleteTermin = (buchung) => {
-    setDeleteTarget(buchung);
-    setDeleteConfirmOpen(true);
-  };
-
-  const confirmDelete = async () => {
+  const handleDelete = async () => {
+    if (!editing) return;
     try {
-      await axiosInstance.delete(`/kalender/raumbelegung/${deleteTarget.id}/`);
-      setSuccessMessage("Termin gelöscht");
-      setDeleteConfirmOpen(false);
-      setDeleteTarget(null);
+      await axiosInstance.delete(`/kalender/raumbelegung/${editing}/`);
+      setMessage("Termin gelöscht");
+      setDialogOpen(false);
+      setEditing(null);
       loadData();
-    } catch (error) {
-      setErrorMessage(error.response?.data?.detail || "Fehler beim Löschen");
+    } catch (err) {
+      setError("Löschen fehlgeschlagen");
     }
   };
 
-  const handleSaveTermin = async () => {
-    // Validierung
+  const handleSave = async () => {
+    setError("");
     if (!formData.kontaktperson.trim()) {
-      setErrorMessage("Name der Kontaktperson ist erforderlich");
+      setError("Kontaktperson ist Pflicht");
       return;
     }
     if (!formData.telefon.trim()) {
-      setErrorMessage("Telefonnummer ist erforderlich");
-      return;
-    }
-    if (!formData.datum_start) {
-      setErrorMessage("Startdatum ist erforderlich");
+      setError("Telefon ist Pflicht");
       return;
     }
     if (formData.raum.length === 0) {
-      setErrorMessage("Mindestens ein Raum muss ausgewählt werden");
+      setError("Bitte Raum auswählen");
       return;
     }
-
+    const payload = {
+      ...formData,
+      teilnehmerzahl: formData.teilnehmerzahl
+        ? parseInt(formData.teilnehmerzahl, 10)
+        : null,
+    };
     try {
-      const payload = {
-        ...formData,
-        teilnehmerzahl: formData.teilnehmerzahl ? parseInt(formData.teilnehmerzahl) : null,
-      };
-
-      if (editingId) {
-        await axiosInstance.put(`/kalender/raumbelegung/${editingId}/`, payload);
-        setSuccessMessage("Termin aktualisiert");
+      if (editing) {
+        await axiosInstance.put(`/kalender/raumbelegung/${editing}/`, payload);
+        setMessage("Termin aktualisiert");
       } else {
         await axiosInstance.post("/kalender/raumbelegung/", payload);
-        setSuccessMessage("Termin erstellt");
+        setMessage("Termin erstellt");
       }
-
-      setNewTerminDialogOpen(false);
-      setEditDialogOpen(false);
+      setDialogOpen(false);
+      setEditing(null);
       loadData();
-    } catch (error) {
-      const errorData = error.response?.data;
-      if (errorData?.ueberschneidung) {
-        setErrorMessage(
-          `Überschneidung gefunden: ${errorData.konflikte
+    } catch (err) {
+      const errData = err.response?.data;
+      if (errData?.ueberschneidung) {
+        setError(
+          `Überschneidung: ${errData.konflikte
             .map((k) => `${k.raum}: ${k.titel}`)
             .join(", ")}`
         );
       } else {
-        setErrorMessage(
-          errorData?.detail || errorData?.non_field_errors?.[0] || "Fehler beim Speichern"
-        );
+        setError("Speichern fehlgeschlagen");
       }
     }
   };
 
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const colorForBooking = (b) => {
+    if (b.wiederholung !== "keine") return COLORS.wiederholung;
+    if (b.kategorie === "fest") return COLORS.fest;
+    return COLORS.termin;
   };
 
-  const handleRaumChange = (event) => {
-    setFormData((prev) => ({
-      ...prev,
-      raum: event.target.value,
-    }));
-  };
-
-  const getKategoryTag = (buchung) => {
-    let kategorie = "T"; // Default Termin
-    if (buchung.wiederholung !== "keine") {
-      kategorie = "W"; // Wiederholend
-    } else if (buchung.kategorie === "fest") {
-      kategorie = "FT"; // Festgelegt
-    }
-    return kategorie;
-  };
-
-  const exportToExcel = () => {
-    const workbook = XLSX.utils.book_new();
-
-    // 1. Zusammenfassungsblatt
-    const summaryData = [];
-    raeume.forEach((raum) => {
-      const raumBuchungen = buchungen.filter((b) => b.raum_namen.includes(raum.name));
-      summaryData.push({
-        Raum: raum.name,
-        Kapazität: raum.kapazitaet,
-        Buchungen: raumBuchungen.length,
-        "% Auslastung": raeume.length > 0 ? ((raumBuchungen.length / 30) * 100).toFixed(1) + "%" : "0%",
-      });
-    });
-    const summarySheet = XLSX.utils.json_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(workbook, summarySheet, "Übersicht");
-
-    // 2. Monatliche Blätter pro Raum
-    raeume.forEach((raum) => {
-      const raumBuchungen = buchungen.filter((b) => b.raum_namen.includes(raum.name));
-      const sheetData = raumBuchungen.map((b) => ({
-        Termin: b.titel,
-        Kontakt: b.kontaktperson,
-        Telefon: b.telefon,
-        Teilnehmer: b.teilnehmerzahl || "-",
-        Startdatum: b.datum_start,
-        Enddatum: b.datum_ende || b.datum_start,
-        Startzeit: b.startzeit,
-        Endzeit: b.endzeit,
-        Kategorie: getKategoryTag(b),
-        Wiederholung: b.wiederholung,
-        Beschreibung: b.beschreibung || "",
-      }));
-      const sheet = XLSX.utils.json_to_sheet(sheetData);
-      XLSX.utils.book_append_sheet(workbook, sheet, raum.name.slice(0, 31));
-    });
-
-    XLSX.writeFile(workbook, `Raumbelegungsplan_${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}.xlsx`);
-  };
-
-  // Rendere Kalender Grid
-  const days = [];
-  const daysInMonth = getDaysInMonth();
-  const firstDay = getFirstDayOfMonth();
-
-  // Leere Tage am Anfang
-  for (let i = 0; i < firstDay; i++) {
-    days.push(null);
-  }
-
-  // Tage des Monats
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-    const dateStr = dateObj.toISOString().split("T")[0];
-    const isFeiertag = !!holidays[dateStr];
-    const dayBookings = buchungen.filter((b) => {
-      const bStart = new Date(b.datum_start);
-      const bEnd = b.datum_ende ? new Date(b.datum_ende) : bStart;
-      return dateObj >= bStart && dateObj <= bEnd;
-    });
-
-    days.push({
-      day,
-      dateStr,
-      isFeiertag,
-      bookingCount: dayBookings.length,
-    });
-  }
+  const holidaysMap = useMemo(() => {
+    const map = {};
+    holidays.forEach((h) => (map[h.datum] = h));
+    return map;
+  }, [holidays]);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton onClick={handlePrevMonth}>
-            <ChevronLeft />
+    <Box sx={{ py: 3 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <IconButton onClick={handlePrevDay}>
+            <ChevronLeftIcon />
           </IconButton>
-          <Typography variant="h5" sx={{ minWidth: 250 }}>
-            {MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}
+          <Typography variant="h6" sx={{ minWidth: 180 }}>
+            {dayString}
           </Typography>
-          <IconButton onClick={handleNextMonth}>
-            <ChevronRight />
+          <IconButton onClick={handleNextDay}>
+            <ChevronRightIcon />
           </IconButton>
+          {holidaysMap[dayString] && (
+            <Chip label="Feiertag" color="error" size="small" sx={{ ml: 1 }} />
+          )}
         </Box>
-        <Box sx={{ display: "flex", gap: 2 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<Add />}
-            onClick={handleNewTermin}
-          >
-            Neuer Termin
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<Download />}
-            onClick={exportToExcel}
-          >
-            Excel Export
-          </Button>
-        </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => handleCellClick(raeume[0]?.id || null, 9)}
+          disabled={raeume.length === 0}
+        >
+          Neuer Termin
+        </Button>
       </Box>
 
-      {/* Legende */}
-      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
-        <Chip label="F - Feiertag" sx={{ backgroundColor: KATEGORIE_FARBEN.F, color: "white" }} />
-        <Chip label="T - Termin" sx={{ backgroundColor: KATEGORIE_FARBEN.T, color: "white" }} />
-        <Chip label="W - Wiederholend" sx={{ backgroundColor: KATEGORIE_FARBEN.W, color: "black" }} />
-        <Chip label="FT - Festgelegt" sx={{ backgroundColor: KATEGORIE_FARBEN.FT, color: "white" }} />
-      </Box>
-
-      {/* Meldungen */}
-      {errorMessage && (
-        <Alert severity="error" onClose={() => setErrorMessage("")} sx={{ mb: 2 }}>
-          {errorMessage}
+      {message && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMessage("")}>
+          {message}
         </Alert>
       )}
-      {successMessage && (
-        <Alert severity="success" onClose={() => setSuccessMessage("")} sx={{ mb: 2 }}>
-          {successMessage}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
+          {error}
         </Alert>
       )}
 
-      {/* Kalender Grid */}
-      <Paper sx={{ p: 2 }}>
-        <Grid container spacing={1}>
-          {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((day) => (
-            <Grid item xs={12 / 7} key={day}>
-              <Typography variant="subtitle2" sx={{ textAlign: "center", fontWeight: "bold", p: 1 }}>
-                {day}
-              </Typography>
-            </Grid>
-          ))}
+      <TableContainer component={Paper}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ width: 200, fontWeight: 700 }}>Raum</TableCell>
+              {HOURS.map((h) => (
+                <TableCell key={h} align="center" sx={{ minWidth: 70, fontWeight: 700 }}>
+                  {`${String(h).padStart(2, "0")}:00`}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {raeume.map((raum) => {
+              const bookings = bookingsForDay.filter((b) => b.raum.includes(raum.id));
+              return (
+                <TableRow key={raum.id} hover>
+                  <TableCell sx={{ fontWeight: 600 }}>{raum.name}</TableCell>
+                  {HOURS.map((h) => {
+                    const booking = bookings.find((b) => {
+                      const start = parseInt(b.startzeit.slice(0, 2), 10);
+                      const end = parseInt(b.endzeit.slice(0, 2), 10);
+                      return h >= start && h < end;
+                    });
+                    if (booking) {
+                      return (
+                        <TableCell
+                          key={`${raum.id}-${h}`}
+                          align="center"
+                          sx={{
+                            p: 0.5,
+                            backgroundColor: colorForBooking(booking),
+                            color: "white",
+                            cursor: "pointer",
+                          }}
+                          onClick={() => handleBookingClick(booking)}
+                        >
+                          {booking.titel || "Termin"}
+                        </TableCell>
+                      );
+                    }
+                    return (
+                      <TableCell
+                        key={`${raum.id}-${h}`}
+                        sx={{ cursor: "pointer" }}
+                        onClick={() => handleCellClick(raum.id, h)}
+                      />
+                    );
+                  })}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-          {days.map((dayData, idx) => (
-            <Grid item xs={12 / 7} key={idx} sx={{ minHeight: 100 }}>
-              {dayData ? (
-                <Card
-                  sx={{
-                    height: "100%",
-                    cursor: "pointer",
-                    backgroundColor: dayData.isFeiertag ? KATEGORIE_FARBEN.F : "inherit",
-                    border: "1px solid #e0e0e0",
-                    "&:hover": { backgroundColor: "#f5f5f5" },
-                  }}
-                  onClick={() => handleDayClick(dayData.day)}
-                >
-                  <CardContent sx={{ p: 1 }}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        fontWeight: "bold",
-                        color: dayData.isFeiertag ? "white" : "inherit",
-                      }}
-                    >
-                      {dayData.day}
-                    </Typography>
-                    {dayData.isFeiertag && (
-                      <Typography variant="caption" sx={{ color: "white", fontWeight: "bold" }}>
-                        F
-                      </Typography>
-                    )}
-                    {dayData.bookingCount > 0 && (
-                      <Typography
-                        variant="caption"
-                        sx={{ display: "block", color: "#2563eb", mt: 0.5 }}
-                      >
-                        {dayData.bookingCount} Termine
-                      </Typography>
-                    )}
-                  </CardContent>
-                </Card>
-              ) : (
-                <Box />
-              )}
-            </Grid>
-          ))}
-        </Grid>
-      </Paper>
-
-      {/* Tagesansicht Dialog */}
-      <Dialog open={dayViewOpen} onClose={() => setDayViewOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Typography>
-              Tagesansicht {selectedDate}
-            </Typography>
-            <IconButton size="small" onClick={() => setDayViewOpen(false)}>
-              <Close />
-            </IconButton>
-          </Box>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>{editing ? "Termin bearbeiten" : "Neuer Termin"}</span>
+          <IconButton size="small" onClick={() => setDialogOpen(false)}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2}>
-            {dayViewBookings.length === 0 ? (
-              <Typography color="textSecondary">Keine Termine an diesem Tag</Typography>
-            ) : (
-              dayViewBookings.map((booking) => (
-                <Card key={booking.id} variant="outlined">
-                  <CardContent>
-                    <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-                      {booking.titel}
-                    </Typography>
-                    <Typography variant="caption" color="textSecondary">
-                      {booking.startzeit} - {booking.endzeit}
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 1 }}>
-                      <strong>Kontakt:</strong> {booking.kontaktperson}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Telefon:</strong> {booking.telefon}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Räume:</strong> {booking.raum_namen.join(", ")}
-                    </Typography>
-                    {booking.teilnehmerzahl && (
-                      <Typography variant="body2">
-                        <strong>Teilnehmer:</strong> {booking.teilnehmerzahl}
-                      </Typography>
-                    )}
-                    <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        startIcon={<Edit />}
-                        onClick={() => {
-                          handleEditTermin(booking);
-                          setDayViewOpen(false);
-                        }}
-                      >
-                        Bearbeiten
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="error"
-                        startIcon={<Delete />}
-                        onClick={() => {
-                          handleDeleteTermin(booking);
-                          setDayViewOpen(false);
-                        }}
-                      >
-                        Löschen
-                      </Button>
-                    </Box>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button variant="contained" startIcon={<Add />} onClick={handleNewTermin}>
-            Neuer Termin
-          </Button>
-          <Button onClick={() => setDayViewOpen(false)}>Schließen</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Neuer/Edit Termin Dialog */}
-      <Dialog open={newTerminDialogOpen || editDialogOpen} onClose={() => {
-        setNewTerminDialogOpen(false);
-        setEditDialogOpen(false);
-      }} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editingId ? "Termin bearbeiten" : "Neuer Termin"}
-        </DialogTitle>
-        <DialogContent dividers sx={{ pt: 2 }}>
-          <Stack spacing={2}>
-            {/* Raum Auswahl */}
             <FormControl fullWidth>
-              <InputLabel>Raum(e) *</InputLabel>
+              <InputLabel>Raum(e)</InputLabel>
               <Select
                 multiple
                 value={formData.raum}
-                onChange={handleRaumChange}
-                label="Raum(e) *"
+                label="Raum(e)"
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    raum: e.target.value,
+                  }))
+                }
               >
                 {raeume.map((raum) => (
                   <MenuItem key={raum.id} value={raum.id}>
-                    {raum.name} ({raum.kapazitaet} Pers.)
+                    {raum.name}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
 
-            {/* Titel */}
             <TextField
-              fullWidth
               label="Titel"
-              name="titel"
               value={formData.titel}
-              onChange={handleFormChange}
+              onChange={(e) => setFormData((p) => ({ ...p, titel: e.target.value }))}
+              fullWidth
             />
 
-            {/* Kontaktperson */}
             <TextField
-              fullWidth
-              label="Kontaktperson Name *"
-              name="kontaktperson"
+              label="Kontaktperson *"
               value={formData.kontaktperson}
-              onChange={handleFormChange}
+              onChange={(e) => setFormData((p) => ({ ...p, kontaktperson: e.target.value }))}
+              fullWidth
               required
             />
 
-            {/* Telefon */}
             <TextField
-              fullWidth
-              label="Telefonnummer *"
-              name="telefon"
+              label="Telefon *"
               value={formData.telefon}
-              onChange={handleFormChange}
+              onChange={(e) => setFormData((p) => ({ ...p, telefon: e.target.value }))}
+              fullWidth
               required
             />
 
-            {/* Teilnehmerzahl */}
             <TextField
-              fullWidth
               label="Teilnehmerzahl"
-              name="teilnehmerzahl"
               type="number"
               value={formData.teilnehmerzahl}
-              onChange={handleFormChange}
+              onChange={(e) => setFormData((p) => ({ ...p, teilnehmerzahl: e.target.value }))}
+              fullWidth
             />
 
-            {/* Datum Start */}
             <TextField
-              fullWidth
-              label="Startdatum *"
-              name="datum_start"
+              label="Datum"
               type="date"
               value={formData.datum_start}
-              onChange={handleFormChange}
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, datum_start: e.target.value, datum_ende: e.target.value }))
+              }
               InputLabelProps={{ shrink: true }}
-              required
-            />
-
-            {/* Datum Ende */}
-            <TextField
               fullWidth
-              label="Enddatum"
-              name="datum_ende"
-              type="date"
-              value={formData.datum_ende}
-              onChange={handleFormChange}
-              InputLabelProps={{ shrink: true }}
             />
 
-            {/* Startzeit */}
-            <TextField
-              fullWidth
-              label="Startzeit"
-              name="startzeit"
-              type="time"
-              value={formData.startzeit}
-              onChange={handleFormChange}
-              InputLabelProps={{ shrink: true }}
-            />
+            <Stack direction="row" spacing={2}>
+              <TextField
+                label="Startzeit"
+                type="time"
+                value={formData.startzeit}
+                onChange={(e) => setFormData((p) => ({ ...p, startzeit: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+              <TextField
+                label="Endzeit"
+                type="time"
+                value={formData.endzeit}
+                onChange={(e) => setFormData((p) => ({ ...p, endzeit: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+            </Stack>
 
-            {/* Endzeit */}
-            <TextField
-              fullWidth
-              label="Endzeit"
-              name="endzeit"
-              type="time"
-              value={formData.endzeit}
-              onChange={handleFormChange}
-              InputLabelProps={{ shrink: true }}
-            />
-
-            {/* Kategorie */}
             <FormControl fullWidth>
               <InputLabel>Kategorie</InputLabel>
               <Select
-                name="kategorie"
                 value={formData.kategorie}
-                onChange={handleFormChange}
                 label="Kategorie"
+                onChange={(e) => setFormData((p) => ({ ...p, kategorie: e.target.value }))}
               >
                 <MenuItem value="termin">Termin</MenuItem>
                 <MenuItem value="fest">Festgelegt</MenuItem>
@@ -663,14 +418,12 @@ export default function RaumbelegungsplanExcel() {
               </Select>
             </FormControl>
 
-            {/* Wiederholung */}
             <FormControl fullWidth>
               <InputLabel>Wiederholung</InputLabel>
               <Select
-                name="wiederholung"
                 value={formData.wiederholung}
-                onChange={handleFormChange}
                 label="Wiederholung"
+                onChange={(e) => setFormData((p) => ({ ...p, wiederholung: e.target.value }))}
               >
                 <MenuItem value="keine">Keine</MenuItem>
                 <MenuItem value="täglich">Täglich</MenuItem>
@@ -679,63 +432,39 @@ export default function RaumbelegungsplanExcel() {
               </Select>
             </FormControl>
 
-            {/* Wiederholung bis */}
             {formData.wiederholung !== "keine" && (
               <TextField
-                fullWidth
                 label="Wiederholung bis"
-                name="wiederholung_bis"
                 type="date"
                 value={formData.wiederholung_bis}
-                onChange={handleFormChange}
+                onChange={(e) => setFormData((p) => ({ ...p, wiederholung_bis: e.target.value }))}
                 InputLabelProps={{ shrink: true }}
+                fullWidth
               />
             )}
 
-            {/* Beschreibung */}
             <TextField
-              fullWidth
               label="Beschreibung"
-              name="beschreibung"
-              value={formData.beschreibung}
-              onChange={handleFormChange}
               multiline
               rows={3}
+              value={formData.beschreibung}
+              onChange={(e) => setFormData((p) => ({ ...p, beschreibung: e.target.value }))}
+              fullWidth
             />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => {
-            setNewTerminDialogOpen(false);
-            setEditDialogOpen(false);
-          }}>Abbrechen</Button>
-          <Button variant="contained" onClick={handleSaveTermin}>
-            {editingId ? "Aktualisieren" : "Erstellen"}
+          {editing && (
+            <Button color="error" startIcon={<DeleteIcon />} onClick={handleDelete}>
+              Löschen
+            </Button>
+          )}
+          <Button onClick={() => setDialogOpen(false)}>Abbrechen</Button>
+          <Button variant="contained" onClick={handleSave}>
+            Speichern
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Warning color="error" />
-          Termin löschen?
-        </DialogTitle>
-        <DialogContent>
-          <Typography>
-            Möchten Sie den Termin "{deleteTarget?.titel}" wirklich löschen?
-          </Typography>
-          <Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1 }}>
-            Diese Aktion kann nicht rückgängig gemacht werden.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)}>Abbrechen</Button>
-          <Button variant="contained" color="error" onClick={confirmDelete}>
-            Löschen
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+    </Box>
   );
 }

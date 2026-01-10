@@ -55,8 +55,10 @@ function NavBar() {
   const [currentUser, setCurrentUser] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [calendarAnchorEl, setCalendarAnchorEl] = useState(null);
   const isLoggedIn = !!localStorage.getItem("adminToken");
   const openUserMenu = Boolean(anchorEl);
+  const openCalendarMenu = Boolean(calendarAnchorEl);
 
   const handleUserMenuClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -64,6 +66,14 @@ function NavBar() {
 
   const handleUserMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleCalendarMenuClick = (event) => {
+    setCalendarAnchorEl(event.currentTarget);
+  };
+
+  const handleCalendarMenuClose = () => {
+    setCalendarAnchorEl(null);
   };
 
   const handleLogout = useCallback(() => {
@@ -91,15 +101,18 @@ function NavBar() {
     { text: "Alle Mitglieder", path: "/" },
     { text: "🗑️ Papierkorb", path: "/trash" },
     { text: "🔒 Datenschutz-Info", path: "/privacy-info" },
-    { text: "🏛️ Gemeindetermine", path: "/gemeindetermine" },
-    { text: "🏢 Raumbelegungsplan", path: "/raumbelegungsplan" },
+    { divider: true },
+    { text: "📅 Kalender", header: true },
+    { text: "   🏛️ Gemeindekalender", path: "/gemeindetermine" },
+    { text: "   🏢 Raumbelegungsplan", path: "/raumbelegungsplan" },
+    { divider: true },
     { text: "Gruppen verwalten", path: "/admin-dashboard/gruppen" },
     { text: "Familien verwalten", path: "/admin-dashboard/families" },
   ];
 
   // Füge Mitarbeiterkalender hinzu, wenn Admin eingeloggt ist
   if (isLoggedIn) {
-    menuItems.push({ text: "👨‍💼 Mitarbeiterkalender", path: "/mitarbeiterkalender" });
+    menuItems.splice(7, 0, { text: "   👨‍💼 Mitarbeiterkalender", path: "/mitarbeiterkalender" });
   }
 
   // Füge Jugendverwaltung hinzu, wenn Berechtigung vorhanden
@@ -171,12 +184,50 @@ function NavBar() {
                   <Button color="inherit" component={Link} to="/privacy-info">
                     🔒 Datenschutz
                   </Button>
-                  <Button color="inherit" component={Link} to="/gemeindetermine">
-                    🏛️ Gemeindetermine
+                  <Button
+                    color="inherit"
+                    onClick={handleCalendarMenuClick}
+                    endIcon={<ArrowDropDownIcon />}
+                  >
+                    📅 Kalender
                   </Button>
-                  <Button color="inherit" component={Link} to="/raumbelegungsplan">
-                    🏢 Raumbelegungsplan
-                  </Button>
+                  <Menu
+                    anchorEl={calendarAnchorEl}
+                    open={openCalendarMenu}
+                    onClose={handleCalendarMenuClose}
+                    anchorOrigin={{
+                      vertical: "bottom",
+                      horizontal: "left",
+                    }}
+                    transformOrigin={{
+                      vertical: "top",
+                      horizontal: "left",
+                    }}
+                  >
+                    <MenuItem
+                      component={Link}
+                      to="/gemeindetermine"
+                      onClick={handleCalendarMenuClose}
+                    >
+                      🏛️ Gemeindekalender
+                    </MenuItem>
+                    <MenuItem
+                      component={Link}
+                      to="/raumbelegungsplan"
+                      onClick={handleCalendarMenuClose}
+                    >
+                      🏢 Raumbelegungsplan
+                    </MenuItem>
+                    {isLoggedIn && (
+                      <MenuItem
+                        component={Link}
+                        to="/mitarbeiterkalender"
+                        onClick={handleCalendarMenuClose}
+                      >
+                        👨‍💼 Mitarbeiterkalender
+                      </MenuItem>
+                    )}
+                  </Menu>
                   <Button
                     color="inherit"
                     component={Link}
@@ -282,18 +333,32 @@ function NavBar() {
         )}
 
         <List>
-          {menuItems.map((item) => (
-            <ListItem key={item.path} disablePadding>
-              <ListItemButton
-                component={Link}
-                to={item.path}
-                onClick={handleMenuClose}
-                sx={{ py: 1.5 }}
-              >
-                <ListItemText primary={item.text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
+          {menuItems.map((item, idx) => {
+            if (item.divider) {
+              return <Divider key={idx} sx={{ my: 1 }} />;
+            }
+            if (item.header) {
+              return (
+                <ListItem key={idx} disablePadding>
+                  <Typography variant="subtitle2" sx={{ p: 2, fontWeight: 600, color: "primary.main" }}>
+                    {item.text}
+                  </Typography>
+                </ListItem>
+              );
+            }
+            return (
+              <ListItem key={item.path} disablePadding>
+                <ListItemButton
+                  component={Link}
+                  to={item.path}
+                  onClick={handleMenuClose}
+                  sx={{ py: 1.5 }}
+                >
+                  <ListItemText primary={item.text} />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
 
           <Divider sx={{ my: 1 }} />
 
