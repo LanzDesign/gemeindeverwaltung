@@ -73,6 +73,7 @@ class Mitarbeiter(models.Model):
 
 class Gemeindetermin(models.Model):
     """Gemeindetermine (Events der Gemeinde)"""
+    # DEPRECATED: Alte fest codierte Kategorien (für Backward Compatibility)
     KATEGORIE_CHOICES = [
         ('intern', 'Intern'),
         ('extern', 'Extern'),
@@ -85,8 +86,11 @@ class Gemeindetermin(models.Model):
     startzeit = models.TimeField()
     endzeit = models.TimeField()
     beschreibung = models.TextField(blank=True)
-    kategorie = models.CharField(max_length=20, choices=KATEGORIE_CHOICES, default='allgemein')
-    farbe = models.CharField(max_length=7, default='#ea580c', help_text='Hex-Farbcode (z.B. #ea580c)')
+    # Neue flexible Kategorie (ForeignKey)
+    kategorie_neu = models.ForeignKey(KalenderKategorie, on_delete=models.SET_NULL, null=True, blank=True, related_name='gemeindetermine', verbose_name='Kategorie')
+    # Alte Kategorie (wird deprecated)
+    kategorie = models.CharField(max_length=20, choices=KATEGORIE_CHOICES, default='allgemein', blank=True, help_text='VERALTET: Wird durch kategorie_neu ersetzt')
+    farbe = models.CharField(max_length=7, default='#ea580c', blank=True, help_text='Hex-Farbcode (z.B. #ea580c) - wird ignoriert wenn kategorie_neu gesetzt')
     erstellt_am = models.DateTimeField(auto_now_add=True)
     aktualisiert_am = models.DateTimeField(auto_now=True)
     erstellt_von = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
@@ -182,16 +186,21 @@ class Mitarbeitereintrag(models.Model):
         super().save(*args, **kwargs)
         
         # Aktualisiere Urlaubstage nach dem Speichern
-        if self.mitarbeiter:
-            if old_war_urlaub:
-                # Ziehe alte Urlaubstage ab
-                self.mitarbeiter.urlaubstage_genommen -= old_tage
+        if self.mitarbeiter and self.typ == 'urlaub':
+            # Berechne neue Urlaubstage (berücksichtigt Feiertage und halbe Tage)
+            neue_tage = self.dauer_tage
             
-            if self.typ == 'urlaub':
-                # Füge neue Urlaubstage hinzu
-                neue_tage = self.dauer_tage
+            if old_war_urlaub:
+                # Update: Ziehe alte ab, füge neue hinzu
+                self.mitarbeiter.urlaubstage_genommen = self.mitarbeiter.urlaubstage_genommen - old_tage + neue_tage
+            else:
+                # Neu: Füge Urlaubstage hinzu
                 self.mitarbeiter.urlaubstage_genommen += neue_tage
             
+            self.mitarbeiter.save()
+        elif self.mitarbeiter and old_war_urlaub and self.typ != 'urlaub':
+            # Typ wurde geändert von urlaub zu etwas anderem
+            self.mitarbeiter.urlaubstage_genommen -= old_tage
             self.mitarbeiter.save()
     
     def delete(self, *args, **kwargs):
@@ -227,6 +236,7 @@ class Raum(models.Model):
 
 class Raumbelegung(models.Model):
     """Raumbelegungsplan"""
+    # DEPRECATED: Alte fest codierte Kategorien (für Backward Compatibility)
     KATEGORIE_CHOICES = [
         ('intern', 'Intern'),
         ('extern', 'Extern'),
@@ -245,7 +255,10 @@ class Raumbelegung(models.Model):
     startzeit = models.TimeField()
     endzeit = models.TimeField()
     
-    kategorie = models.CharField(max_length=20, choices=KATEGORIE_CHOICES, default='termin')
+    # Neue flexible Kategorie (ForeignKey)
+    kategorie_neu = models.ForeignKey(KalenderKategorie, on_delete=models.SET_NULL, null=True, blank=True, related_name='raumbelegungen', verbose_name='Kategorie')
+    # Alte Kategorie (wird deprecated)
+    kategorie = models.CharField(max_length=20, choices=KATEGORIE_CHOICES, default='termin', blank=True, help_text='VERALTET: Wird durch kategorie_neu ersetzt')
     
     # Wiederholung
     wiederholung = models.CharField(

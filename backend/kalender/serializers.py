@@ -26,9 +26,13 @@ class MitarbeiterKategorieSerializer(serializers.ModelSerializer):
 
 
 class GemeindeterminSerializer(serializers.ModelSerializer):
+    kategorie_detail = KalenderKategorieSerializer(source='kategorie_neu', read_only=True)
+    
     class Meta:
         model = Gemeindetermin
-        fields = ['id', 'titel', 'datum', 'startzeit', 'endzeit', 'beschreibung', 'kategorie', 'farbe', 'erstellt_am', 'aktualisiert_am']
+        fields = ['id', 'titel', 'datum', 'startzeit', 'endzeit', 'beschreibung', 
+                  'kategorie', 'kategorie_neu', 'kategorie_detail', 'farbe', 
+                  'erstellt_am', 'aktualisiert_am']
         read_only_fields = ['erstellt_am', 'aktualisiert_am']
 
 
@@ -50,13 +54,15 @@ class RaumbelegungSerializer(serializers.ModelSerializer):
     raum_namen = serializers.SerializerMethodField()
     ueberschneidung_ok = serializers.SerializerMethodField()
     farbe_kategorie = serializers.SerializerMethodField()
+    kategorie_detail = KalenderKategorieSerializer(source='kategorie_neu', read_only=True)
     
     class Meta:
         model = Raumbelegung
         fields = ['id', 'raum', 'raum_namen', 'titel', 'kontaktperson', 'telefon', 'teilnehmerzahl',
-                  'datum_start', 'datum_ende', 'startzeit', 'endzeit', 'kategorie', 'wiederholung', 
-                  'wiederholung_bis', 'beschreibung', 'farbe', 'farbe_kategorie', 'ueberschneidung_ok', 
-                  'erstellt_am', 'aktualisiert_am']
+                  'datum_start', 'datum_ende', 'startzeit', 'endzeit', 
+                  'kategorie', 'kategorie_neu', 'kategorie_detail', 
+                  'wiederholung', 'wiederholung_bis', 'beschreibung', 'farbe', 'farbe_kategorie', 
+                  'ueberschneidung_ok', 'erstellt_am', 'aktualisiert_am']
         read_only_fields = ['erstellt_am', 'aktualisiert_am']
     
     def get_raum_namen(self, obj):
