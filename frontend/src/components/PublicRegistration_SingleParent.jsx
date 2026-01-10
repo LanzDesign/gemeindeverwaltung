@@ -138,7 +138,7 @@ function PublicRegistration() {
 
     try {
       const response = await axios.get(
-        `https://api.fecg-lahr-app.de/public/verify-family-code/?code=${familyCode.toUpperCase()}`
+        `https://api.fecg-lahr-app.de/api/public/verify-family-code/?code=${familyCode.toUpperCase()}`
       );
       setFamilyCodeValid(response.data.valid);
       if (!response.data.valid) {
