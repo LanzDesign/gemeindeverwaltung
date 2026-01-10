@@ -152,12 +152,22 @@ class Mitarbeitereintrag(models.Model):
             # Zähle Arbeitstage (ohne Wochenenden und Feiertage)
             tage_count = 0
             current = self.datum_start
+            
+            print(f"[Urlaubsberechnung] Zeitraum: {self.datum_start} bis {self.datum_ende}")
+            
             while current <= self.datum_ende:
                 # Prüfe: ist nicht Samstag (5) oder Sonntag (6) und kein Feiertag
-                if current.weekday() < 5:  # Mo-Fr
+                if current.weekday() < 5:  # Mo-Fr (0=Mo, 4=Fr, 5=Sa, 6=So)
                     if not FeiertagService.ist_feiertag(current):
                         tage_count += 1
+                        print(f"[Urlaubsberechnung] {current} ({current.strftime('%A')}): GEZÄHLT (Gesamt: {tage_count})")
+                    else:
+                        print(f"[Urlaubsberechnung] {current} ({current.strftime('%A')}): FEIERTAG - übersprungen")
+                else:
+                    print(f"[Urlaubsberechnung] {current} ({current.strftime('%A')}): WOCHENENDE - übersprungen")
                 current += timedelta(days=1)
+            
+            print(f"[Urlaubsberechnung] Ergebnis: {tage_count} Arbeitstage, Halbtags: {self.halbtags}")
             
             if self.halbtags:
                 return tage_count * 0.5
