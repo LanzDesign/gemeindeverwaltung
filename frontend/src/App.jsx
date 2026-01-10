@@ -41,9 +41,9 @@ import TrashPage from "./components/TrashPage";
 import ProfilePage from "./components/ProfilePage";
 import PrivacyInfoPage from "./components/PrivacyInfoPage";
 import Jugendverwaltung from "./components/Jugendverwaltung";
-import KalenderPage from "./components/KalenderPage";
+import GemeindeteminePage from "./components/GemeindeteminePage";
+import RaumbelegungsplanPage from "./components/RaumbelegungsplanPage";
 import MitarbeiterKalenderPage from "./components/MitarbeiterKalenderPage";
-import RaumbelegungsplanView from "./components/RaumbelegungsplanView";
 import PublicRegistration from "./components/PublicRegistration_SingleParent";
 import { canAccessJugendverwaltung } from "./utils/auth";
 import "./styles.css";
@@ -91,7 +91,7 @@ function NavBar() {
     { text: "Alle Mitglieder", path: "/" },
     { text: "🗑️ Papierkorb", path: "/trash" },
     { text: "🔒 Datenschutz-Info", path: "/privacy-info" },
-    { text: "📅 Kalender", path: "/kalender" },
+    { text: "🏛️ Gemeindetermine", path: "/gemeindetermine" },
     { text: "🏢 Raumbelegungsplan", path: "/raumbelegungsplan" },
     { text: "Gruppen verwalten", path: "/admin-dashboard/gruppen" },
     { text: "Familien verwalten", path: "/admin-dashboard/families" },
@@ -353,10 +353,18 @@ function App() {
                     }
                   />
                   <Route
-                    path="/kalender"
+                    path="/gemeindetermine"
                     element={
                       <ProtectedRoute>
-                        <KalenderPage />
+                        <GemeindeteminePage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/raumbelegungsplan"
+                    element={
+                      <ProtectedRoute>
+                        <RaumbelegungsplanPage />
                       </ProtectedRoute>
                     }
                   />
@@ -365,14 +373,6 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <MitarbeiterKalenderPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/raumbelegungsplan"
-                    element={
-                      <ProtectedRoute>
-                        <RaumbelegungsplanView />
                       </ProtectedRoute>
                     }
                   />
