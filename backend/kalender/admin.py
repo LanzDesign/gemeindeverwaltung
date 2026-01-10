@@ -95,14 +95,19 @@ class RaumAdmin(admin.ModelAdmin):
 
 @admin.register(Raumbelegung)
 class RaumbelegungAdmin(admin.ModelAdmin):
-    list_display = ['raum', 'titel', 'kontaktperson', 'datum_start', 'startzeit', 'endzeit', 'kategorie', 'farbe_anzeigen']
-    list_filter = ['raum', 'datum_start', 'kategorie', 'wiederholung', 'erstellt_am']
+    list_display = ['raeume_anzeigen', 'titel', 'kontaktperson', 'datum_start', 'startzeit', 'endzeit', 'kategorie', 'farbe_anzeigen']
+    list_filter = ['datum_start', 'kategorie', 'wiederholung', 'erstellt_am']
     search_fields = ['raum__name', 'titel', 'kontaktperson', 'telefon', 'beschreibung']
-    ordering = ['-datum_start', 'raum', 'startzeit']
+    ordering = ['-datum_start', 'startzeit']
     fields = ['raum', 'titel', 'kontaktperson', 'telefon', 'teilnehmerzahl', 
               'datum_start', 'datum_ende', 'startzeit', 'endzeit', 
               'kategorie', 'wiederholung', 'wiederholung_bis', 'farbe', 'beschreibung', 'erstellt_von']
     readonly_fields = ['erstellt_von']
+    filter_horizontal = ['raum']
+    
+    def raeume_anzeigen(self, obj):
+        return ", ".join([r.name for r in obj.raum.all()])
+    raeume_anzeigen.short_description = 'Räume'
     
     def farbe_anzeigen(self, obj):
         return f'<span style="background-color:{obj.farbe}; padding:3px 10px; border-radius:3px; color:white;">{obj.farbe}</span>'
