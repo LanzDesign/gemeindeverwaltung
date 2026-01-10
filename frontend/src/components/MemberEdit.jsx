@@ -380,6 +380,10 @@ function MemberEdit() {
     delete cleanData.current_services;
     delete cleanData.desired_services;
 
+    console.log("🔴 MemberEdit - Submitting data:");
+    console.log("  Gender value:", cleanData.gender);
+    console.log("  Full cleanData:", cleanData);
+
     try {
       const token = localStorage.getItem("adminToken");
       await axiosInstance.put(`/members/${id}/`, cleanData, {
