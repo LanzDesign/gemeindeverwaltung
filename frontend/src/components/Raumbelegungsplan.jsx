@@ -95,32 +95,6 @@ export default function RaumbelegungsplanExcel() {
     return currentDate.toISOString().slice(0, 10);
   }, [currentDate]);
 
-  const dayStringFormatted = useMemo(() => {
-    if (viewMode === "day") {
-      const d = currentDate.getDate();
-      const m = currentDate.getMonth() + 1;
-      const y = currentDate.getFullYear();
-      return `${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.${y}`;
-    } else if (viewMode === "week") {
-      const monday = displayDates[0];
-      const sunday = displayDates[6];
-      return `${monday.toLocaleDateString("de-DE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })} - ${sunday.toLocaleDateString("de-DE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })}`;
-    } else {
-      return currentDate.toLocaleDateString("de-DE", {
-        month: "long",
-        year: "numeric",
-      });
-    }
-  }, [currentDate, viewMode, displayDates]);
-
   const displayDates = useMemo(() => {
     if (viewMode === "day") {
       return [currentDate];
@@ -147,6 +121,32 @@ export default function RaumbelegungsplanExcel() {
       return dates;
     }
   }, [currentDate, viewMode]);
+
+  const dayStringFormatted = useMemo(() => {
+    if (viewMode === "day") {
+      const d = currentDate.getDate();
+      const m = currentDate.getMonth() + 1;
+      const y = currentDate.getFullYear();
+      return `${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.${y}`;
+    } else if (viewMode === "week") {
+      const monday = displayDates[0];
+      const sunday = displayDates[6];
+      return `${monday.toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })} - ${sunday.toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })}`;
+    } else {
+      return currentDate.toLocaleDateString("de-DE", {
+        month: "long",
+        year: "numeric",
+      });
+    }
+  }, [currentDate, viewMode, displayDates]);
 
   const bookingsForDates = useMemo(() => {
     return buchungen.filter((b) => {
