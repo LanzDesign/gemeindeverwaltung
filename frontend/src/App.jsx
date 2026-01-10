@@ -112,7 +112,10 @@ function NavBar() {
 
   // Füge Mitarbeiterkalender hinzu, wenn Admin eingeloggt ist
   if (isLoggedIn) {
-    menuItems.splice(7, 0, { text: "   👨‍💼 Mitarbeiterkalender", path: "/mitarbeiterkalender" });
+    menuItems.splice(7, 0, {
+      text: "   👨‍💼 Mitarbeiterkalender",
+      path: "/mitarbeiterkalender",
+    });
   }
 
   // Füge Jugendverwaltung hinzu, wenn Berechtigung vorhanden
@@ -340,7 +343,10 @@ function NavBar() {
             if (item.header) {
               return (
                 <ListItem key={idx} disablePadding>
-                  <Typography variant="subtitle2" sx={{ p: 2, fontWeight: 600, color: "primary.main" }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ p: 2, fontWeight: 600, color: "primary.main" }}
+                  >
                     {item.text}
                   </Typography>
                 </ListItem>

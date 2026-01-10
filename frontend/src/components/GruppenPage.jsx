@@ -130,6 +130,7 @@ function PrivacyIcons({ member }) {
 }
 
 function GruppenPage() {
+  console.log("🔴 GruppenPage COMPONENT MOUNTED");
   const navigate = useNavigate();
   const [gruppen, setGruppen] = useState([]);
   const [allMembers, setAllMembers] = useState([]);
@@ -291,31 +292,42 @@ function GruppenPage() {
   };
 
   useEffect(() => {
+    console.log("🔴 GruppenPage useEffect TRIGGERED");
     const loadData = async () => {
+      console.log("🔴 loadData function CALLED");
       await fetchGruppen();
+      console.log("🔴 fetchGruppen COMPLETED");
       try {
         const token = localStorage.getItem("adminToken");
+        console.log("🔴 Token:", token ? "EXISTS" : "MISSING");
         const membersResp = await axiosInstance.get("/members/", {
           headers: { Authorization: `Token ${token}` },
         });
-        console.log("=== GruppenPage: Loaded Members ===");
+        console.log("🔴🔴🔴 === GruppenPage: Loaded Members ===");
         console.log("Total members:", membersResp.data.length);
-        
-        const membersWithIsMember = membersResp.data.filter(m => m.is_member);
+
+        const membersWithIsMember = membersResp.data.filter((m) => m.is_member);
         console.log("Members with is_member=true:", membersWithIsMember.length);
-        
+
         const membersWithoutGroups = membersResp.data.filter(
           (m) => m.is_member && (!m.gruppen || m.gruppen.length === 0)
         );
-        console.log("Members without groups (filtered):", membersWithoutGroups.length);
-        
+        console.log(
+          "Members without groups (filtered):",
+          membersWithoutGroups.length
+        );
+
         // Show first 5 members details
         console.log("First 5 members sample:");
         membersResp.data.slice(0, 5).forEach((m, i) => {
-          console.log(`  ${i+1}. ${m.first_name} ${m.last_name}:`);
-          console.log(`     is_member: ${m.is_member}, gruppen: ${JSON.stringify(m.gruppen)}`);
+          console.log(`  ${i + 1}. ${m.first_name} ${m.last_name}:`);
+          console.log(
+            `     is_member: ${m.is_member}, gruppen: ${JSON.stringify(
+              m.gruppen
+            )}`
+          );
         });
-        
+
         setAllMembers(membersResp.data);
       } catch (error) {
         console.error("Fehler beim Laden der Mitglieder:", error);
@@ -693,7 +705,10 @@ function GruppenPage() {
 
   if (loading) {
     return (
-      <Container maxWidth={false} sx={{ mt: 4, textAlign: "center", px: { xs: 1, sm: 2 } }}>
+      <Container
+        maxWidth={false}
+        sx={{ mt: 4, textAlign: "center", px: { xs: 1, sm: 2 } }}
+      >
         <CircularProgress />
       </Container>
     );

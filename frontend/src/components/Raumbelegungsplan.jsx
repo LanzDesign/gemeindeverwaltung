@@ -93,8 +93,8 @@ export default function RaumbelegungsplanExcel() {
 
   const dayString = useMemo(() => {
     const year = currentDate.getFullYear();
-    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-    const day = String(currentDate.getDate()).padStart(2, '0');
+    const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+    const day = String(currentDate.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   }, [currentDate]);
 
@@ -130,7 +130,7 @@ export default function RaumbelegungsplanExcel() {
       const d = currentDate.getDate();
       const m = currentDate.getMonth() + 1;
       const y = currentDate.getFullYear();
-      return `${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.${y}`;
+      return `${String(d).padStart(2, "0")}.${String(m).padStart(2, "0")}.${y}`;
     } else if (viewMode === "week") {
       const monday = displayDates[0];
       const sunday = displayDates[6];
@@ -154,7 +154,7 @@ export default function RaumbelegungsplanExcel() {
   const bookingsForDates = useMemo(() => {
     // Expandiere wiederholende Termine
     const expandedBookings = [];
-    
+
     buchungen.forEach((b) => {
       if (b.wiederholung === "keine") {
         // Normaler Termin ohne Wiederholung
@@ -162,8 +162,10 @@ export default function RaumbelegungsplanExcel() {
       } else {
         // Wiederholender Termin - expandieren
         const startDate = new Date(b.datum_start);
-        const endDate = b.wiederholung_bis ? new Date(b.wiederholung_bis) : new Date(startDate.getFullYear() + 1, 11, 31);
-        
+        const endDate = b.wiederholung_bis
+          ? new Date(b.wiederholung_bis)
+          : new Date(startDate.getFullYear() + 1, 11, 31);
+
         let currentDate = new Date(startDate);
         while (currentDate <= endDate) {
           // Erstelle eine Instanz für dieses Datum
@@ -174,7 +176,7 @@ export default function RaumbelegungsplanExcel() {
             _isRecurring: true,
             _originalId: b.id,
           });
-          
+
           // Nächstes Datum basierend auf Wiederholungstyp
           if (b.wiederholung === "täglich") {
             currentDate.setDate(currentDate.getDate() + 1);
@@ -186,33 +188,37 @@ export default function RaumbelegungsplanExcel() {
         }
       }
     });
-    
+
     // Filtere nur die Termine, die in displayDates liegen und füge datum-Property hinzu
-    return expandedBookings.filter((b) => {
-      const bStart = b.datum_start;
-      const bEnd = b.datum_ende || b.datum_start;
-      return displayDates.some((date) => {
-        const ds = date.toISOString().slice(0, 10);
-        return ds >= bStart && ds <= bEnd;
-      });
-    }).map((b) => ({
-      ...b,
-      datum: b.datum_start  // Füge datum-Property für Wochen-/Monatsansicht hinzu
-    }));
+    return expandedBookings
+      .filter((b) => {
+        const bStart = b.datum_start;
+        const bEnd = b.datum_ende || b.datum_start;
+        return displayDates.some((date) => {
+          const ds = date.toISOString().slice(0, 10);
+          return ds >= bStart && ds <= bEnd;
+        });
+      })
+      .map((b) => ({
+        ...b,
+        datum: b.datum_start, // Füge datum-Property für Wochen-/Monatsansicht hinzu
+      }));
   }, [buchungen, displayDates]);
 
   const bookingsForDay = useMemo(() => {
     // Expandiere wiederholende Termine
     const expandedBookings = [];
-    
+
     buchungen.forEach((b) => {
       if (b.wiederholung === "keine") {
         expandedBookings.push(b);
       } else {
         // Wiederholender Termin
         const startDate = new Date(b.datum_start);
-        const endDate = b.wiederholung_bis ? new Date(b.wiederholung_bis) : new Date(startDate.getFullYear() + 1, 11, 31);
-        
+        const endDate = b.wiederholung_bis
+          ? new Date(b.wiederholung_bis)
+          : new Date(startDate.getFullYear() + 1, 11, 31);
+
         let currentDate = new Date(startDate);
         while (currentDate <= endDate) {
           expandedBookings.push({
@@ -222,7 +228,7 @@ export default function RaumbelegungsplanExcel() {
             _isRecurring: true,
             _originalId: b.id,
           });
-          
+
           if (b.wiederholung === "täglich") {
             currentDate.setDate(currentDate.getDate() + 1);
           } else if (b.wiederholung === "wöchentlich") {
@@ -233,7 +239,7 @@ export default function RaumbelegungsplanExcel() {
         }
       }
     });
-    
+
     // Filtere für den aktuellen Tag
     return expandedBookings.filter((b) => {
       const start = b.datum_start;
@@ -338,16 +344,16 @@ export default function RaumbelegungsplanExcel() {
       wiederholung: formData.wiederholung,
       beschreibung: formData.beschreibung || "",
     };
-    
+
     // Optionale Felder nur hinzufügen, wenn sie einen Wert haben
     if (formData.teilnehmerzahl) {
       payload.teilnehmerzahl = parseInt(formData.teilnehmerzahl, 10);
     }
-    
+
     if (formData.datum_ende) {
       payload.datum_ende = formData.datum_ende;
     }
-    
+
     if (formData.wiederholung !== "keine" && formData.wiederholung_bis) {
       payload.wiederholung_bis = formData.wiederholung_bis;
     }
@@ -376,7 +382,9 @@ export default function RaumbelegungsplanExcel() {
         // Zeige detaillierte Fehlermeldungen an
         const errorMessages = Object.entries(errData)
           .map(([field, messages]) => {
-            const msg = Array.isArray(messages) ? messages.join(", ") : messages;
+            const msg = Array.isArray(messages)
+              ? messages.join(", ")
+              : messages;
             return `${field}: ${msg}`;
           })
           .join("; ");
@@ -470,28 +478,36 @@ export default function RaumbelegungsplanExcel() {
           <TableHead>
             <TableRow>
               <TableCell sx={{ width: 200, fontWeight: 700 }}>Raum</TableCell>
-              {viewMode === "day" ? (
-                HOURS.map((h) => (
-                  <TableCell key={h} align="center" sx={{ minWidth: 70, fontWeight: 700 }}>
-                    {`${String(h).padStart(2, "0")}:00`}
-                  </TableCell>
-                ))
-              ) : (
-                displayDates.map((date) => {
-                  const dateStr = date.toLocaleDateString("de-DE", {
-                    day: "2-digit",
-                    month: "2-digit",
-                  });
-                  const dayName = date.toLocaleDateString("de-DE", { weekday: "short" });
-                  return (
-                    <TableCell key={dateStr} align="center" sx={{ minWidth: 100, fontWeight: 700 }}>
-                      {dayName}
-                      <br />
-                      {dateStr}
+              {viewMode === "day"
+                ? HOURS.map((h) => (
+                    <TableCell
+                      key={h}
+                      align="center"
+                      sx={{ minWidth: 70, fontWeight: 700 }}
+                    >
+                      {`${String(h).padStart(2, "0")}:00`}
                     </TableCell>
-                  );
-                })
-              )}
+                  ))
+                : displayDates.map((date) => {
+                    const dateStr = date.toLocaleDateString("de-DE", {
+                      day: "2-digit",
+                      month: "2-digit",
+                    });
+                    const dayName = date.toLocaleDateString("de-DE", {
+                      weekday: "short",
+                    });
+                    return (
+                      <TableCell
+                        key={dateStr}
+                        align="center"
+                        sx={{ minWidth: 100, fontWeight: 700 }}
+                      >
+                        {dayName}
+                        <br />
+                        {dateStr}
+                      </TableCell>
+                    );
+                  })}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -499,85 +515,90 @@ export default function RaumbelegungsplanExcel() {
               return (
                 <TableRow key={raum.id} hover>
                   <TableCell sx={{ fontWeight: 600 }}>{raum.name}</TableCell>
-                  {viewMode === "day" ? (
-                    HOURS.map((h) => {
-                      const bookings = bookingsForDay.filter((b) => b.raum.includes(raum.id));
-                      const booking = bookings.find((b) => {
-                        const start = parseInt(b.startzeit.slice(0, 2), 10);
-                        const end = parseInt(b.endzeit.slice(0, 2), 10);
-                        return h >= start && h < end;
-                      });
-                      if (booking) {
+                  {viewMode === "day"
+                    ? HOURS.map((h) => {
+                        const bookings = bookingsForDay.filter((b) =>
+                          b.raum.includes(raum.id)
+                        );
+                        const booking = bookings.find((b) => {
+                          const start = parseInt(b.startzeit.slice(0, 2), 10);
+                          const end = parseInt(b.endzeit.slice(0, 2), 10);
+                          return h >= start && h < end;
+                        });
+                        if (booking) {
+                          return (
+                            <TableCell
+                              key={`${raum.id}-${h}`}
+                              align="center"
+                              sx={{
+                                p: 0.5,
+                                backgroundColor: colorForBooking(booking),
+                                color: "white",
+                                cursor: "pointer",
+                              }}
+                              onClick={() => handleBookingClick(booking)}
+                            >
+                              {booking.titel || "Termin"}
+                            </TableCell>
+                          );
+                        }
                         return (
                           <TableCell
                             key={`${raum.id}-${h}`}
-                            align="center"
-                            sx={{
-                              p: 0.5,
-                              backgroundColor: colorForBooking(booking),
-                              color: "white",
-                              cursor: "pointer",
-                            }}
-                            onClick={() => handleBookingClick(booking)}
-                          >
-                            {booking.titel || "Termin"}
-                          </TableCell>
+                            sx={{ cursor: "pointer" }}
+                            onClick={() => handleCellClick(raum.id, h)}
+                          />
                         );
-                      }
-                      return (
-                        <TableCell
-                          key={`${raum.id}-${h}`}
-                          sx={{ cursor: "pointer" }}
-                          onClick={() => handleCellClick(raum.id, h)}
-                        />
-                      );
-                    })
-                  ) : (
-                    displayDates.map((date) => {
-                      const dateStr = date.toISOString().split("T")[0];
-                      const dayBookings = bookingsForDates.filter(
-                        (b) => b.datum === dateStr && b.raum.includes(raum.id)
-                      );
-                      if (dayBookings.length > 0) {
+                      })
+                    : displayDates.map((date) => {
+                        const dateStr = date.toISOString().split("T")[0];
+                        const dayBookings = bookingsForDates.filter(
+                          (b) => b.datum === dateStr && b.raum.includes(raum.id)
+                        );
+                        if (dayBookings.length > 0) {
+                          return (
+                            <TableCell
+                              key={`${raum.id}-${dateStr}`}
+                              align="center"
+                              sx={{
+                                p: 0.5,
+                                cursor: "pointer",
+                                verticalAlign: "top",
+                              }}
+                            >
+                              {dayBookings.map((booking) => (
+                                <Box
+                                  key={booking.id}
+                                  sx={{
+                                    mb: 0.5,
+                                    p: 0.5,
+                                    backgroundColor: colorForBooking(booking),
+                                    color: "white",
+                                    borderRadius: 1,
+                                    fontSize: "0.75rem",
+                                  }}
+                                  onClick={() => handleBookingClick(booking)}
+                                >
+                                  {booking.startzeit.slice(0, 5)}-
+                                  {booking.endzeit.slice(0, 5)}
+                                  <br />
+                                  {booking.titel}
+                                </Box>
+                              ))}
+                            </TableCell>
+                          );
+                        }
                         return (
                           <TableCell
                             key={`${raum.id}-${dateStr}`}
-                            align="center"
-                            sx={{ p: 0.5, cursor: "pointer", verticalAlign: "top" }}
-                          >
-                            {dayBookings.map((booking) => (
-                              <Box
-                                key={booking.id}
-                                sx={{
-                                  mb: 0.5,
-                                  p: 0.5,
-                                  backgroundColor: colorForBooking(booking),
-                                  color: "white",
-                                  borderRadius: 1,
-                                  fontSize: "0.75rem",
-                                }}
-                                onClick={() => handleBookingClick(booking)}
-                              >
-                                {booking.startzeit.slice(0, 5)}-{booking.endzeit.slice(0, 5)}
-                                <br />
-                                {booking.titel}
-                              </Box>
-                            ))}
-                          </TableCell>
+                            sx={{ cursor: "pointer" }}
+                            onClick={() => {
+                              setCurrentDate(date);
+                              setViewMode("day");
+                            }}
+                          />
                         );
-                      }
-                      return (
-                        <TableCell
-                          key={`${raum.id}-${dateStr}`}
-                          sx={{ cursor: "pointer" }}
-                          onClick={() => {
-                            setCurrentDate(date);
-                            setViewMode("day");
-                          }}
-                        />
-                      );
-                    })
-                  )}
+                      })}
                 </TableRow>
               );
             })}
@@ -585,8 +606,19 @@ export default function RaumbelegungsplanExcel() {
         </Table>
       </TableContainer>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <span>{editing ? "Termin bearbeiten" : "Neuer Termin"}</span>
           <IconButton size="small" onClick={() => setDialogOpen(false)}>
             <CloseIcon fontSize="small" />
@@ -618,14 +650,18 @@ export default function RaumbelegungsplanExcel() {
             <TextField
               label="Titel"
               value={formData.titel}
-              onChange={(e) => setFormData((p) => ({ ...p, titel: e.target.value }))}
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, titel: e.target.value }))
+              }
               fullWidth
             />
 
             <TextField
               label="Kontaktperson *"
               value={formData.kontaktperson}
-              onChange={(e) => setFormData((p) => ({ ...p, kontaktperson: e.target.value }))}
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, kontaktperson: e.target.value }))
+              }
               fullWidth
               required
             />
@@ -633,7 +669,9 @@ export default function RaumbelegungsplanExcel() {
             <TextField
               label="Telefon *"
               value={formData.telefon}
-              onChange={(e) => setFormData((p) => ({ ...p, telefon: e.target.value }))}
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, telefon: e.target.value }))
+              }
               fullWidth
               required
             />
@@ -642,7 +680,9 @@ export default function RaumbelegungsplanExcel() {
               label="Teilnehmerzahl"
               type="number"
               value={formData.teilnehmerzahl}
-              onChange={(e) => setFormData((p) => ({ ...p, teilnehmerzahl: e.target.value }))}
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, teilnehmerzahl: e.target.value }))
+              }
               fullWidth
             />
 
@@ -651,7 +691,11 @@ export default function RaumbelegungsplanExcel() {
               type="date"
               value={formData.datum_start}
               onChange={(e) =>
-                setFormData((p) => ({ ...p, datum_start: e.target.value, datum_ende: e.target.value }))
+                setFormData((p) => ({
+                  ...p,
+                  datum_start: e.target.value,
+                  datum_ende: e.target.value,
+                }))
               }
               InputLabelProps={{ shrink: true }}
               fullWidth
@@ -662,7 +706,9 @@ export default function RaumbelegungsplanExcel() {
                 label="Startzeit"
                 type="time"
                 value={formData.startzeit}
-                onChange={(e) => setFormData((p) => ({ ...p, startzeit: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, startzeit: e.target.value }))
+                }
                 InputLabelProps={{ shrink: true }}
                 fullWidth
               />
@@ -670,7 +716,9 @@ export default function RaumbelegungsplanExcel() {
                 label="Endzeit"
                 type="time"
                 value={formData.endzeit}
-                onChange={(e) => setFormData((p) => ({ ...p, endzeit: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, endzeit: e.target.value }))
+                }
                 InputLabelProps={{ shrink: true }}
                 fullWidth
               />
@@ -681,7 +729,9 @@ export default function RaumbelegungsplanExcel() {
               <Select
                 value={formData.kategorie}
                 label="Kategorie"
-                onChange={(e) => setFormData((p) => ({ ...p, kategorie: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, kategorie: e.target.value }))
+                }
               >
                 <MenuItem value="termin">Termin</MenuItem>
                 <MenuItem value="fest">Festgelegt</MenuItem>
@@ -695,7 +745,9 @@ export default function RaumbelegungsplanExcel() {
               <Select
                 value={formData.wiederholung}
                 label="Wiederholung"
-                onChange={(e) => setFormData((p) => ({ ...p, wiederholung: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, wiederholung: e.target.value }))
+                }
               >
                 <MenuItem value="keine">Keine</MenuItem>
                 <MenuItem value="täglich">Täglich</MenuItem>
@@ -709,7 +761,12 @@ export default function RaumbelegungsplanExcel() {
                 label="Wiederholung bis"
                 type="date"
                 value={formData.wiederholung_bis}
-                onChange={(e) => setFormData((p) => ({ ...p, wiederholung_bis: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((p) => ({
+                    ...p,
+                    wiederholung_bis: e.target.value,
+                  }))
+                }
                 InputLabelProps={{ shrink: true }}
                 fullWidth
               />
@@ -720,14 +777,20 @@ export default function RaumbelegungsplanExcel() {
               multiline
               rows={3}
               value={formData.beschreibung}
-              onChange={(e) => setFormData((p) => ({ ...p, beschreibung: e.target.value }))}
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, beschreibung: e.target.value }))
+              }
               fullWidth
             />
           </Stack>
         </DialogContent>
         <DialogActions>
           {editing && (
-            <Button color="error" startIcon={<DeleteIcon />} onClick={handleDelete}>
+            <Button
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={handleDelete}
+            >
               Löschen
             </Button>
           )}

@@ -114,7 +114,12 @@ function PublicRegistration() {
   const addChild = () => {
     setChildren((prev) => [
       ...prev,
-      { first_name: "", last_name: person.last_name, gender: "", date_of_birth: "" },
+      {
+        first_name: "",
+        last_name: person.last_name,
+        gender: "",
+        date_of_birth: "",
+      },
     ]);
   };
 

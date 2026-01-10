@@ -29,15 +29,19 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
+
     // Wenn 401 und wir haben einen Token gesendet, lösche Token und versuche ohne
-    if (error.response?.status === 401 && !originalRequest._retry && originalRequest.headers.Authorization) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      originalRequest.headers.Authorization
+    ) {
       originalRequest._retry = true;
       localStorage.removeItem("adminToken");
       delete originalRequest.headers.Authorization;
       return axiosInstance(originalRequest);
     }
-    
+
     return Promise.reject(error);
   }
 );

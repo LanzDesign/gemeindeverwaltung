@@ -270,10 +270,14 @@ export default function MitarbeiterKalenderView() {
 
     // Berechne für jeden Mitarbeiter
     sortedMitarbeiter.forEach((ma) => {
-      const maMitarbeiterEintraege = eintraege.filter((e) => e.mitarbeiter === ma.id);
+      const maMitarbeiterEintraege = eintraege.filter(
+        (e) => e.mitarbeiter === ma.id
+      );
 
       // Zähle Urlaubstage
-      const urlaubEintraege = maMitarbeiterEintraege.filter((e) => e.typ === "urlaub");
+      const urlaubEintraege = maMitarbeiterEintraege.filter(
+        (e) => e.typ === "urlaub"
+      );
       let urlaubTage = 0;
       urlaubEintraege.forEach((e) => {
         // Nutze dauer_tage (excludes weekends und holidays)
@@ -281,25 +285,23 @@ export default function MitarbeiterKalenderView() {
       });
 
       // Zähle Krankheitstage
-      const krankheitEintraege = maMitarbeiterEintraege.filter((e) => e.typ === "krankheit");
+      const krankheitEintraege = maMitarbeiterEintraege.filter(
+        (e) => e.typ === "krankheit"
+      );
       let krankheitTage = 0;
       krankheitEintraege.forEach((e) => {
         krankheitTage += e.dauer_tage || 0;
       });
 
-      summaryData.push([
-        ma.vollstaendiger_name,
-        urlaubTage,
-        krankheitTage,
-      ]);
+      summaryData.push([ma.vollstaendiger_name, urlaubTage, krankheitTage]);
     });
 
     const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
     // Setze Spaltenbreiten
     summarySheet["!cols"] = [
-      { wch: 25 },  // Mitarbeiter
-      { wch: 15 },  // Urlaubstage
-      { wch: 15 },  // Krankheitstage
+      { wch: 25 }, // Mitarbeiter
+      { wch: 15 }, // Urlaubstage
+      { wch: 15 }, // Krankheitstage
     ];
     XLSX.utils.book_append_sheet(workbook, summarySheet, "Zusammenfassung", 0);
 
@@ -328,21 +330,20 @@ export default function MitarbeiterKalenderView() {
       // Erstelle Tabelle
       const tableData = [
         // Header mit Datum
-        [
-          "Mitarbeiter",
-          ...daysInThisMonth.map((d) => `${d.day}`),
-        ],
+        ["Mitarbeiter", ...daysInThisMonth.map((d) => `${d.day}`)],
         // Subheader mit Wochentag
         [
           "",
-          ...daysInThisMonth.map((d) => DAY_NAMES_MONDAY_START[d.weekday === 0 ? 6 : d.weekday - 1]),
+          ...daysInThisMonth.map(
+            (d) => DAY_NAMES_MONDAY_START[d.weekday === 0 ? 6 : d.weekday - 1]
+          ),
         ],
       ];
 
       // Für jeden Mitarbeiter eine Zeile
       sortedMitarbeiter.forEach((ma) => {
         const row = [ma.vollstaendiger_name];
-        
+
         daysInThisMonth.forEach((dayInfo) => {
           const dayEntries = eintraege.filter((e) => {
             const matches =
@@ -601,7 +602,7 @@ export default function MitarbeiterKalenderView() {
         >
           F = Feiertag
         </Box>
-        
+
         {kategorien.map((kat) => (
           <Box
             key={kat.id}
@@ -761,7 +762,10 @@ export default function MitarbeiterKalenderView() {
                   label="Kategorie *"
                   value={formData.kategorie || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, kategorie: e.target.value || null })
+                    setFormData({
+                      ...formData,
+                      kategorie: e.target.value || null,
+                    })
                   }
                   fullWidth
                   required
@@ -913,7 +917,10 @@ export default function MitarbeiterKalenderView() {
                   label="Kategorie"
                   value={formData.kategorie || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, kategorie: e.target.value || null })
+                    setFormData({
+                      ...formData,
+                      kategorie: e.target.value || null,
+                    })
                   }
                   fullWidth
                 >

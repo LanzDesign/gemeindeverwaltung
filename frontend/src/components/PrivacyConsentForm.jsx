@@ -202,19 +202,19 @@ function PrivacyConsentForm({ memberData, onComplete }) {
 
       // Mapping der Feldnamen für das Backend (person1_* Format)
       const fieldMapping = {
-        'first_name': 'person1_first_name',
-        'last_name': 'person1_last_name',
-        'gender': 'person1_gender',
-        'email': 'person1_email',
-        'phone': 'person1_phone',
-        'street': 'person1_street',
-        'postal_code': 'person1_postal_code',
-        'city': 'person1_city',
-        'date_of_birth': 'person1_date_of_birth',
-        'married_since': 'person1_married_since',
-        'profession': 'person1_profession',
-        'nationality': 'person1_nationality',
-        'is_youth': 'person1_is_youth',
+        first_name: "person1_first_name",
+        last_name: "person1_last_name",
+        gender: "person1_gender",
+        email: "person1_email",
+        phone: "person1_phone",
+        street: "person1_street",
+        postal_code: "person1_postal_code",
+        city: "person1_city",
+        date_of_birth: "person1_date_of_birth",
+        married_since: "person1_married_since",
+        profession: "person1_profession",
+        nationality: "person1_nationality",
+        is_youth: "person1_is_youth",
       };
 
       // Alle Felder hinzufügen mit korrektem Mapping
