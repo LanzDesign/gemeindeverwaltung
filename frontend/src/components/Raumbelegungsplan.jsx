@@ -253,6 +253,9 @@ export default function RaumbelegungsplanExcel() {
     }
     const payload = {
       ...formData,
+      datum_ende: formData.datum_ende || null,
+      wiederholung_bis: formData.wiederholung_bis || null,
+      beschreibung: formData.beschreibung || "",
       teilnehmerzahl: formData.teilnehmerzahl
         ? parseInt(formData.teilnehmerzahl, 10)
         : null,
