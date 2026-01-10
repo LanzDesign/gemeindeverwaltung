@@ -23,6 +23,8 @@ import {
   Stack,
   Chip,
   Alert,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -30,6 +32,9 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
+import ViewDayIcon from "@mui/icons-material/ViewDay";
+import ViewWeekIcon from "@mui/icons-material/ViewWeek";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import axiosInstance from "../api/axios";
 
 const HOURS = Array.from({ length: 17 }, (_, i) => 6 + i); // 06:00 bis 22:00
@@ -41,6 +46,7 @@ const COLORS = {
 
 export default function RaumbelegungsplanExcel() {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState("day"); // day, week, month
   const [raeume, setRaeume] = useState([]);
   const [buchungen, setBuchungen] = useState([]);
   const [holidays, setHolidays] = useState([]);
@@ -73,8 +79,8 @@ export default function RaumbelegungsplanExcel() {
       const jahr = currentDate.getFullYear();
       const monat = currentDate.getMonth() + 1;
       const [raumRes, buchRes, feiertageRes] = await Promise.all([
-        axiosInstance.get("/kalender/raum/"),
-        axiosInstance.get("/kalender/raumbelegung/"),
+        axiosInstance.get("/kalender/raeume/"),
+        axiosInstance.get("/kalender/raumbelegungen/"),
         axiosInstance.get(`/kalender/feiertage/?jahr=${jahr}&monat=${monat}`),
       ]);
       setRaeume(raumRes.data);
@@ -89,6 +95,70 @@ export default function RaumbelegungsplanExcel() {
     return currentDate.toISOString().slice(0, 10);
   }, [currentDate]);
 
+  const dayStringFormatted = useMemo(() => {
+    if (viewMode === "day") {
+      const d = currentDate.getDate();
+      const m = currentDate.getMonth() + 1;
+      const y = currentDate.getFullYear();
+      return `${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.${y}`;
+    } else if (viewMode === "week") {
+      const monday = displayDates[0];
+      const sunday = displayDates[6];
+      return `${monday.toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })} - ${sunday.toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })}`;
+    } else {
+      return currentDate.toLocaleDateString("de-DE", {
+        month: "long",
+        year: "numeric",
+      });
+    }
+  }, [currentDate, viewMode, displayDates]);
+
+  const displayDates = useMemo(() => {
+    if (viewMode === "day") {
+      return [currentDate];
+    } else if (viewMode === "week") {
+      const dates = [];
+      const start = new Date(currentDate);
+      const day = start.getDay();
+      const diff = day === 0 ? -6 : 1 - day; // Start at Monday
+      start.setDate(start.getDate() + diff);
+      for (let i = 0; i < 7; i++) {
+        dates.push(new Date(start));
+        start.setDate(start.getDate() + 1);
+      }
+      return dates;
+    } else {
+      // month
+      const dates = [];
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      for (let d = 1; d <= daysInMonth; d++) {
+        dates.push(new Date(year, month, d));
+      }
+      return dates;
+    }
+  }, [currentDate, viewMode]);
+
+  const bookingsForDates = useMemo(() => {
+    return buchungen.filter((b) => {
+      const bStart = b.datum_start;
+      const bEnd = b.datum_ende || b.datum_start;
+      return displayDates.some((date) => {
+        const ds = date.toISOString().slice(0, 10);
+        return ds >= bStart && ds <= bEnd;
+      });
+    });
+  }, [buchungen, displayDates]);
+
   const bookingsForDay = useMemo(() => {
     return buchungen.filter((b) => {
       const start = b.datum_start;
@@ -99,13 +169,25 @@ export default function RaumbelegungsplanExcel() {
 
   const handlePrevDay = () => {
     const d = new Date(currentDate);
-    d.setDate(d.getDate() - 1);
+    if (viewMode === "day") {
+      d.setDate(d.getDate() - 1);
+    } else if (viewMode === "week") {
+      d.setDate(d.getDate() - 7);
+    } else {
+      d.setMonth(d.getMonth() - 1);
+    }
     setCurrentDate(d);
   };
 
   const handleNextDay = () => {
     const d = new Date(currentDate);
-    d.setDate(d.getDate() + 1);
+    if (viewMode === "day") {
+      d.setDate(d.getDate() + 1);
+    } else if (viewMode === "week") {
+      d.setDate(d.getDate() + 7);
+    } else {
+      d.setMonth(d.getMonth() + 1);
+    }
     setCurrentDate(d);
   };
 
@@ -145,7 +227,7 @@ export default function RaumbelegungsplanExcel() {
   const handleDelete = async () => {
     if (!editing) return;
     try {
-      await axiosInstance.delete(`/kalender/raumbelegung/${editing}/`);
+      await axiosInstance.delete(`/kalender/raumbelegungen/${editing}/`);
       setMessage("Termin gelöscht");
       setDialogOpen(false);
       setEditing(null);
@@ -177,10 +259,10 @@ export default function RaumbelegungsplanExcel() {
     };
     try {
       if (editing) {
-        await axiosInstance.put(`/kalender/raumbelegung/${editing}/`, payload);
+        await axiosInstance.put(`/kalender/raumbelegungen/${editing}/`, payload);
         setMessage("Termin aktualisiert");
       } else {
-        await axiosInstance.post("/kalender/raumbelegung/", payload);
+        await axiosInstance.post("/kalender/raumbelegungen/", payload);
         setMessage("Termin erstellt");
       }
       setDialogOpen(false);
@@ -227,7 +309,7 @@ export default function RaumbelegungsplanExcel() {
             <ChevronLeftIcon />
           </IconButton>
           <Typography variant="h6" sx={{ minWidth: 180 }}>
-            {dayString}
+            {dayStringFormatted}
           </Typography>
           <IconButton onClick={handleNextDay}>
             <ChevronRightIcon />
@@ -236,14 +318,35 @@ export default function RaumbelegungsplanExcel() {
             <Chip label="Feiertag" color="error" size="small" sx={{ ml: 1 }} />
           )}
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleCellClick(raeume[0]?.id || null, 9)}
-          disabled={raeume.length === 0}
-        >
-          Neuer Termin
-        </Button>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(e, val) => val && setViewMode(val)}
+            size="small"
+          >
+            <ToggleButton value="day">
+              <ViewDayIcon fontSize="small" sx={{ mr: 0.5 }} />
+              Tag
+            </ToggleButton>
+            <ToggleButton value="week">
+              <ViewWeekIcon fontSize="small" sx={{ mr: 0.5 }} />
+              Woche
+            </ToggleButton>
+            <ToggleButton value="month">
+              <CalendarMonthIcon fontSize="small" sx={{ mr: 0.5 }} />
+              Monat
+            </ToggleButton>
+          </ToggleButtonGroup>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleCellClick(raeume[0]?.id || null, 9)}
+            disabled={raeume.length === 0}
+          >
+            Neuer Termin
+          </Button>
+        </Box>
       </Box>
 
       {message && (
@@ -262,50 +365,114 @@ export default function RaumbelegungsplanExcel() {
           <TableHead>
             <TableRow>
               <TableCell sx={{ width: 200, fontWeight: 700 }}>Raum</TableCell>
-              {HOURS.map((h) => (
-                <TableCell key={h} align="center" sx={{ minWidth: 70, fontWeight: 700 }}>
-                  {`${String(h).padStart(2, "0")}:00`}
-                </TableCell>
-              ))}
+              {viewMode === "day" ? (
+                HOURS.map((h) => (
+                  <TableCell key={h} align="center" sx={{ minWidth: 70, fontWeight: 700 }}>
+                    {`${String(h).padStart(2, "0")}:00`}
+                  </TableCell>
+                ))
+              ) : (
+                displayDates.map((date) => {
+                  const dateStr = date.toLocaleDateString("de-DE", {
+                    day: "2-digit",
+                    month: "2-digit",
+                  });
+                  const dayName = date.toLocaleDateString("de-DE", { weekday: "short" });
+                  return (
+                    <TableCell key={dateStr} align="center" sx={{ minWidth: 100, fontWeight: 700 }}>
+                      {dayName}
+                      <br />
+                      {dateStr}
+                    </TableCell>
+                  );
+                })
+              )}
             </TableRow>
           </TableHead>
           <TableBody>
             {raeume.map((raum) => {
-              const bookings = bookingsForDay.filter((b) => b.raum.includes(raum.id));
               return (
                 <TableRow key={raum.id} hover>
                   <TableCell sx={{ fontWeight: 600 }}>{raum.name}</TableCell>
-                  {HOURS.map((h) => {
-                    const booking = bookings.find((b) => {
-                      const start = parseInt(b.startzeit.slice(0, 2), 10);
-                      const end = parseInt(b.endzeit.slice(0, 2), 10);
-                      return h >= start && h < end;
-                    });
-                    if (booking) {
+                  {viewMode === "day" ? (
+                    HOURS.map((h) => {
+                      const bookings = bookingsForDay.filter((b) => b.raum.includes(raum.id));
+                      const booking = bookings.find((b) => {
+                        const start = parseInt(b.startzeit.slice(0, 2), 10);
+                        const end = parseInt(b.endzeit.slice(0, 2), 10);
+                        return h >= start && h < end;
+                      });
+                      if (booking) {
+                        return (
+                          <TableCell
+                            key={`${raum.id}-${h}`}
+                            align="center"
+                            sx={{
+                              p: 0.5,
+                              backgroundColor: colorForBooking(booking),
+                              color: "white",
+                              cursor: "pointer",
+                            }}
+                            onClick={() => handleBookingClick(booking)}
+                          >
+                            {booking.titel || "Termin"}
+                          </TableCell>
+                        );
+                      }
                       return (
                         <TableCell
                           key={`${raum.id}-${h}`}
-                          align="center"
-                          sx={{
-                            p: 0.5,
-                            backgroundColor: colorForBooking(booking),
-                            color: "white",
-                            cursor: "pointer",
-                          }}
-                          onClick={() => handleBookingClick(booking)}
-                        >
-                          {booking.titel || "Termin"}
-                        </TableCell>
+                          sx={{ cursor: "pointer" }}
+                          onClick={() => handleCellClick(raum.id, h)}
+                        />
                       );
-                    }
-                    return (
-                      <TableCell
-                        key={`${raum.id}-${h}`}
-                        sx={{ cursor: "pointer" }}
-                        onClick={() => handleCellClick(raum.id, h)}
-                      />
-                    );
-                  })}
+                    })
+                  ) : (
+                    displayDates.map((date) => {
+                      const dateStr = date.toISOString().split("T")[0];
+                      const dayBookings = bookingsForDates.filter(
+                        (b) => b.datum === dateStr && b.raum.includes(raum.id)
+                      );
+                      if (dayBookings.length > 0) {
+                        return (
+                          <TableCell
+                            key={`${raum.id}-${dateStr}`}
+                            align="center"
+                            sx={{ p: 0.5, cursor: "pointer", verticalAlign: "top" }}
+                          >
+                            {dayBookings.map((booking) => (
+                              <Box
+                                key={booking.id}
+                                sx={{
+                                  mb: 0.5,
+                                  p: 0.5,
+                                  backgroundColor: colorForBooking(booking),
+                                  color: "white",
+                                  borderRadius: 1,
+                                  fontSize: "0.75rem",
+                                }}
+                                onClick={() => handleBookingClick(booking)}
+                              >
+                                {booking.startzeit.slice(0, 5)}-{booking.endzeit.slice(0, 5)}
+                                <br />
+                                {booking.titel}
+                              </Box>
+                            ))}
+                          </TableCell>
+                        );
+                      }
+                      return (
+                        <TableCell
+                          key={`${raum.id}-${dateStr}`}
+                          sx={{ cursor: "pointer" }}
+                          onClick={() => {
+                            setCurrentDate(date);
+                            setViewMode("day");
+                          }}
+                        />
+                      );
+                    })
+                  )}
                 </TableRow>
               );
             })}
