@@ -298,6 +298,12 @@ function GruppenPage() {
         const membersResp = await axiosInstance.get("/members/", {
           headers: { Authorization: `Token ${token}` },
         });
+        console.log("=== GruppenPage: Loaded Members ===");
+        console.log("Total members:", membersResp.data.length);
+        console.log("Members without groups:", membersResp.data.filter(
+          (m) => m.is_member && (!m.gruppen || m.gruppen.length === 0)
+        ).length);
+        console.log("Sample member:", membersResp.data[0]);
         setAllMembers(membersResp.data);
       } catch (error) {
         console.error("Fehler beim Laden der Mitglieder:", error);
