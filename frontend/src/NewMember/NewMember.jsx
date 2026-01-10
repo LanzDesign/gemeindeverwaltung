@@ -146,11 +146,20 @@ function NewMember() {
 
   const handlePrivacyComplete = async (formData /*, consents*/) => {
     try {
+      // Check if admin is logged in
+      const token = localStorage.getItem("adminToken");
+      const headers = {
+        "Content-Type": "multipart/form-data",
+      };
+      
+      // Add auth header if admin token exists
+      if (token) {
+        headers["Authorization"] = `Token ${token}`;
+      }
+      
       // FormData wird direkt vom PrivacyConsentForm übergeben und enthält bereits alle Daten
       const response = await axiosInstance.post("/members/", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers,
       });
       console.log("Erfolg!", response.data);
       setStatus("success");
