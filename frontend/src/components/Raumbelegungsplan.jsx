@@ -270,7 +270,8 @@ export default function RaumbelegungsplanExcel() {
       loadData();
     } catch (err) {
       const errData = err.response?.data;
-      console.error("Fehler beim Speichern:", errData);
+      console.error("Fehler beim Speichern:", JSON.stringify(errData, null, 2));
+      console.error("Gesendete Daten:", JSON.stringify(payload, null, 2));
       if (errData?.ueberschneidung) {
         setError(
           `Überschneidung: ${errData.konflikte
