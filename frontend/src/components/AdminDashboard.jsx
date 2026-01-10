@@ -382,15 +382,11 @@ function AdminDashboard() {
         // Gender filter
         if (filterMale) {
           const gender = (m.gender || '').toLowerCase();
-          const matches = gender === "male" || gender === "m" || gender === "männlich";
-          console.log(`🔴 Filter Male - ${m.first_name}: gender="${m.gender}", lowercase="${gender}", matches=${matches}`);
-          if (!matches) return false;
+          if (gender !== "male" && gender !== "m" && gender !== "männlich") return false;
         }
         if (filterFemale) {
           const gender = (m.gender || '').toLowerCase();
-          const matches = gender === "female" || gender === "f" || gender === "weiblich";
-          console.log(`🔴 Filter Female - ${m.first_name}: gender="${m.gender}", lowercase="${gender}", matches=${matches}`);
-          if (!matches) return false;
+          if (gender !== "female" && gender !== "f" && gender !== "weiblich") return false;
         }
 
         // Filter children:
@@ -486,6 +482,8 @@ function AdminDashboard() {
     filterDonor,
     filterNonDonor,
     filterMember,
+    filterMale,
+    filterFemale,
     filterNoGroup,
     filterYouth,
     filterChild,
