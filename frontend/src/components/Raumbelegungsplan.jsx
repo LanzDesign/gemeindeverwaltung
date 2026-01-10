@@ -252,14 +252,30 @@ export default function RaumbelegungsplanExcel() {
       return;
     }
     const payload = {
-      ...formData,
-      datum_ende: formData.datum_ende || null,
-      wiederholung_bis: formData.wiederholung_bis || null,
+      raum: formData.raum,
+      titel: formData.titel,
+      kontaktperson: formData.kontaktperson,
+      telefon: formData.telefon,
+      startzeit: formData.startzeit,
+      endzeit: formData.endzeit,
+      datum_start: formData.datum_start,
+      kategorie: formData.kategorie,
+      wiederholung: formData.wiederholung,
       beschreibung: formData.beschreibung || "",
-      teilnehmerzahl: formData.teilnehmerzahl
-        ? parseInt(formData.teilnehmerzahl, 10)
-        : null,
     };
+    
+    // Optionale Felder nur hinzufügen, wenn sie einen Wert haben
+    if (formData.teilnehmerzahl) {
+      payload.teilnehmerzahl = parseInt(formData.teilnehmerzahl, 10);
+    }
+    
+    if (formData.datum_ende) {
+      payload.datum_ende = formData.datum_ende;
+    }
+    
+    if (formData.wiederholung !== "keine" && formData.wiederholung_bis) {
+      payload.wiederholung_bis = formData.wiederholung_bis;
+    }
     try {
       if (editing) {
         await axiosInstance.put(`/raumbelegungen/${editing.id}/`, payload);
