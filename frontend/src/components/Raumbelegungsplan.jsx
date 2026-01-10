@@ -107,7 +107,6 @@ export default function RaumbelegungsplanExcel() {
   
   // Dialogs
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [roomDialogOpen, setRoomDialogOpen] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [roomDetailsOpen, setRoomDetailsOpen] = useState(false);
   
@@ -134,12 +133,6 @@ export default function RaumbelegungsplanExcel() {
     beschreibung: "",
   });
 
-  const [newRoom, setNewRoom] = useState({
-    name: "",
-    kapazitaet: "",
-    beschreibung: "",
-  });
-
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
@@ -162,72 +155,78 @@ export default function RaumbelegungsplanExcel() {
     }
   };
 
-  // Berechne Tage im Monat
-  const daysInMonth = useMemo(() => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const lastDay = new Date(year, month + 1, 0);
-
-    const days = [];
-    for (let d = 1; d <= lastDay.getDate(); d++) {
-      const date = new Date(year, month, d);
-      const dayOfWeek = date.getDay();
-      const weekdayMondayStart = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      const dateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(
-        d
-      ).padStart(2, "0")}`;
-
-      const feiertag = holidays[dateString];
-
-      days.push({
-        day: d,
-        weekday: dayOfWeek,
-        weekdayMondayStart: weekdayMondayStart,
-        date: date,
-        dateString: dateString,
-        isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
-        feiertag: feiertag || null,
+  // Berechne Zeitslots (Stunden)
+  const timeSlots = useMemo(() => {
+    const slots = [];
+    for (let hour = 6; hour <= 22; hour++) {
+      slots.push({
+        hour,
+        label: `${String(hour).padStart(2, "0")}:00`,
       });
     }
-    return days;
-  }, [currentDate, holidays]);
+    return slots;
+  }, []);
 
-  // Hole Buchungen für bestimmten Tag und Raum
-  const getBookingsForDay = (raumId, dateString) => {
+  // Formatiere aktuelles Datum
+  const currentDateString = useMemo(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const day = currentDate.getDate();
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }, [currentDate]);
+
+  const currentDayInfo = useMemo(() => {
+    const dayOfWeek = currentDate.getDay();
+    const feiertag = holidays[currentDateString];
+    return {
+      isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+      feiertag: feiertag || null,
+      dateString: currentDateString,
+    };
+  }, [currentDate, currentDateString, holidays]);
+
+  // Hole Buchungen für bestimmten Zeitslot und Raum
+  const getBookingsForTimeSlot = (raumId, hour) => {
     return buchungen.filter((booking) => {
       const matchesRoom = booking.raum && booking.raum.includes(raumId);
-      const bookingStart = booking.datum_start;
-      const bookingEnd = booking.datum_ende || booking.datum_start;
-      const inRange = dateString >= bookingStart && dateString <= bookingEnd;
+      const matchesDate = booking.datum_start === currentDateString;
       
-      return matchesRoom && inRange;
+      if (!matchesRoom || !matchesDate) return false;
+
+      // Prüfe ob Buchung in diesem Zeitslot ist
+      const [startHour] = booking.startzeit.split(":").map(Number);
+      const [endHour] = booking.endzeit.split(":").map(Number);
+      
+      return hour >= startHour && hour < endHour;
     });
   };
 
-  const handlePrevMonth = () => {
-    setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
-    );
+  const handlePrevDay = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() - 1);
+    setCurrentDate(newDate);
   };
 
-  const handleNextMonth = () => {
-    setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
-    );
+  const handleNextDay = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + 1);
+    setCurrentDate(newDate);
   };
 
   const handleToday = () => {
     setCurrentDate(new Date());
   };
 
-  const handleCellClick = (raumId, dateString) => {
+  const handleCellClick = (raumId, hour) => {
     setSelectedRoom(raumId);
-    setSelectedDate(dateString);
+    setSelectedDate(currentDateString);
     setFormData({
       ...formData,
       raum: [raumId],
-      datum_start: dateString,
-      datum_ende: dateString,
+      datum_start: currentDateString,
+      datum_ende: currentDateString,
+      startzeit: `${String(hour).padStart(2, "0")}:00`,
+      endzeit: `${String(hour + 1).padStart(2, "0")}:00`,
     });
     setEditingEntry(null);
     setDialogOpen(true);
@@ -355,33 +354,6 @@ export default function RaumbelegungsplanExcel() {
     setConfirmDialogOpen(true);
   };
 
-  const handleSaveRoom = async () => {
-    if (!newRoom.name.trim()) {
-      setErrorMessage("Bitte geben Sie einen Raumnamen ein");
-      return;
-    }
-    
-    if (!newRoom.kapazitaet || parseInt(newRoom.kapazitaet) <= 0) {
-      setErrorMessage("Bitte geben Sie eine gültige Personenanzahl ein");
-      return;
-    }
-
-    try {
-      await axiosInstance.post("/api/kalender/raeume/", {
-        ...newRoom,
-        kapazitaet: parseInt(newRoom.kapazitaet),
-        aktiv: true,
-      });
-      await loadData();
-      setRoomDialogOpen(false);
-      setNewRoom({ name: "", kapazitaet: "", beschreibung: "" });
-      setErrorMessage("");
-    } catch (error) {
-      console.error("Fehler beim Anlegen des Raums:", error);
-      setErrorMessage("Fehler beim Anlegen des Raums");
-    }
-  };
-
   const handlePrint = () => {
     window.print();
   };
@@ -392,16 +364,14 @@ export default function RaumbelegungsplanExcel() {
   };
 
   const getBookingsForRoom = (raumId) => {
-    const year = currentDate.getFullYear();
-    const month = String(currentDate.getMonth() + 1).padStart(2, "0");
-    const monthStr = `${year}-${month}`;
-    
     return buchungen.filter((b) => {
       const matchesRoom = b.raum && b.raum.includes(raumId);
-      const inMonth =
-        b.datum_start.startsWith(monthStr) ||
-        (b.datum_ende && b.datum_ende.startsWith(monthStr));
-      return matchesRoom && inMonth;
+      const matchesDate = b.datum_start === currentDateString;
+      return matchesRoom && matchesDate;
+    }).sort((a, b) => {
+      const [aHour, aMin] = a.startzeit.split(":").map(Number);
+      const [bHour, bMin] = b.startzeit.split(":").map(Number);
+      return (aHour * 60 + aMin) - (bHour * 60 + bMin);
     });
   };
 
@@ -423,25 +393,22 @@ export default function RaumbelegungsplanExcel() {
       return "FT";
     }
     return "T";
-  };
-
-  const renderCell = (raumId, dayInfo) => {
-    const bookings = getBookingsForDay(raumId, dayInfo.dateString);
-    const isFeiertag = !!dayInfo.feiertag;
+  };timeSlot) => {
+    const bookings = getBookingsForTimeSlot(raumId, timeSlot.hour);
 
     return (
       <TableCell
-        key={dayInfo.day}
+        key={timeSlot.hour}
         align="center"
-        onClick={() => handleCellClick(raumId, dayInfo.dateString)}
+        onClick={() => handleCellClick(raumId, timeSlot.hour)}
         sx={{
-          minWidth: isMobile ? 28 : 35,
-          maxWidth: isMobile ? 28 : 35,
-          width: isMobile ? 28 : 35,
-          padding: "2px",
-          backgroundColor: isFeiertag
+          minWidth: isMobile ? 50 : 80,
+          maxWidth: isMobile ? 50 : 80,
+          width: isMobile ? 50 : 80,
+          padding: "4px",
+          backgroundColor: currentDayInfo.feiertag
             ? "#fee2e2"
-            : dayInfo.isWeekend
+            : currentDayInfo.isWeekend
             ? "#f5f5f5"
             : "white",
           borderRight: "1px solid #ddd",
@@ -449,58 +416,78 @@ export default function RaumbelegungsplanExcel() {
           cursor: "pointer",
           position: "relative",
           verticalAlign: "middle",
-          height: isMobile ? "40px" : "50px",
+          height: isMobile ? "50px" : "60px",
           "&:hover": {
             backgroundColor: "#e3f2fd",
           },
         }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 0.3,
-            alignItems: "center",
-            justifyContent: "center",
-            height: "100%",
-          }}
-        >
-          {bookings.map((booking, idx) => {
-            const color = getBookingColor(booking);
-            const label = getBookingLabel(booking);
+        {bookings.length > 0 && (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 0.5,
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+            }}
+          >
+            {bookings.map((booking, idx) => {
+              const color = getBookingColor(booking);
+              const label = getBookingLabel(booking);
+              
+              // Berechne Dauer in Stunden
+              const [startHour, startMin] = booking.startzeit.split(":").map(Number);
+              const [endHour, endMin] = booking.endzeit.split(":").map(Number);
+              const duration = (endHour * 60 + endMin - startHour * 60 - startMin) / 60;
 
-            return (
-              <Tooltip
-                key={idx}
-                title={`${booking.titel} - ${booking.kontaktperson} (${booking.startzeit} - ${booking.endzeit})`}
-                arrow
-                placement="top"
-              >
-                <Box
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditEntry(booking);
-                  }}
-                  sx={{
-                    backgroundColor: color,
-                    color: "white",
-                    fontSize: isMobile ? "9px" : "11px",
-                    fontWeight: "bold",
-                    padding: "2px 4px",
-                    borderRadius: "3px",
-                    minWidth: isMobile ? "18px" : "22px",
-                    textAlign: "center",
-                    lineHeight: 1.2,
-                    cursor: "pointer",
-                    "&:hover": {
-                      opacity: 0.8,
-                    },
-                  }}
+              return (
+                <Tooltip
+                  key={idx}
+                  title={
+                    <div>
+                      <strong>{booking.titel}</strong><br />
+                      {booking.kontaktperson}<br />
+                      {booking.startzeit} - {booking.endzeit}<br />
+                      {booking.teilnehmerzahl && `${booking.teilnehmerzahl} Personen`}
+                    </div>
+                  }
+                  arrow
+                  placement="top"
                 >
-                  {label}
-                </Box>
-              </Tooltip>
-            );
+                  <Box
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditEntry(booking);
+                    }}
+                    sx={{
+                      backgroundColor: color,
+                      color: "white",
+                      fontSize: isMobile ? "10px" : "12px",
+                      fontWeight: "bold",
+                      padding: "4px 6px",
+                      borderRadius: "4px",
+                      width: "100%",
+                      textAlign: "center",
+                      cursor: "pointer",
+                      "&:hover": {
+                        opacity: 0.8,
+                        transform: "scale(1.05)",
+                      },
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    <div>{label}</div>
+                    <Typography variant="caption" sx={{ fontSize: "9px" }}>
+                      {booking.startzeit}
+                    </Typography>
+                  </Box>
+                </Tooltip>
+              );
+            })}
+          </Box>
+        )}
           })}
         </Box>
       </TableCell>
@@ -509,7 +496,7 @@ export default function RaumbelegungsplanExcel() {
 
   return (
     <Box>
-      {/* Header mit Monatsnavigation */}
+      {/* Header mit Tagesnavigation */}
       <Stack
         direction="row"
         spacing={2}
@@ -519,19 +506,24 @@ export default function RaumbelegungsplanExcel() {
       >
         <Stack direction="row" spacing={1} alignItems="center">
           <IconButton
-            onClick={handlePrevMonth}
+            onClick={handlePrevDay}
             size={isMobile ? "small" : "medium"}
           >
             <ChevronLeft />
           </IconButton>
           <Typography
             variant={isMobile ? "h6" : "h5"}
-            sx={{ minWidth: 180, textAlign: "center" }}
+            sx={{ minWidth: 250, textAlign: "center" }}
           >
-            {MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}
+            {currentDate.toLocaleDateString("de-DE", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
           </Typography>
           <IconButton
-            onClick={handleNextMonth}
+            onClick={handleNextDay}
             size={isMobile ? "small" : "medium"}
           >
             <ChevronRight />
@@ -540,14 +532,6 @@ export default function RaumbelegungsplanExcel() {
         <Stack direction="row" spacing={1}>
           <Button onClick={handleToday} size="small" variant="outlined">
             Heute
-          </Button>
-          <Button
-            onClick={() => setRoomDialogOpen(true)}
-            size="small"
-            variant="contained"
-            startIcon={<Add />}
-          >
-            Neuer Raum
           </Button>
           <Button
             onClick={handlePrint}
@@ -584,7 +568,7 @@ export default function RaumbelegungsplanExcel() {
         />
       </Stack>
 
-      {/* Kalender Tabelle */}
+      {/* Kalender Tabelle - Zeitstrahl */}
       <TableContainer
         component={Paper}
         sx={{
@@ -605,9 +589,9 @@ export default function RaumbelegungsplanExcel() {
                   backgroundColor: "#5b9bd5",
                   color: "white",
                   fontWeight: "bold",
-                  minWidth: isMobile ? 100 : 180,
-                  maxWidth: isMobile ? 100 : 180,
-                  width: isMobile ? 100 : 180,
+                  minWidth: isMobile ? 120 : 200,
+                  maxWidth: isMobile ? 120 : 200,
+                  width: isMobile ? 120 : 200,
                   borderRight: "2px solid #ddd",
                   borderBottom: "2px solid #ddd",
                   padding: "8px",
@@ -617,40 +601,24 @@ export default function RaumbelegungsplanExcel() {
                 Räume
               </TableCell>
 
-              {daysInMonth.map((dayInfo) => (
+              {timeSlots.map((slot) => (
                 <TableCell
-                  key={dayInfo.day}
+                  key={slot.hour}
                   align="center"
                   sx={{
-                    minWidth: isMobile ? 28 : 35,
-                    maxWidth: isMobile ? 28 : 35,
-                    width: isMobile ? 28 : 35,
+                    minWidth: isMobile ? 50 : 80,
+                    maxWidth: isMobile ? 50 : 80,
+                    width: isMobile ? 50 : 80,
                     padding: "4px 2px",
-                    backgroundColor: dayInfo.feiertag
-                      ? "#dc2626"
-                      : dayInfo.isWeekend
-                      ? "#e0e0e0"
-                      : "#5b9bd5",
+                    backgroundColor: "#5b9bd5",
                     color: "white",
                     fontWeight: "bold",
-                    fontSize: isMobile ? "10px" : "11px",
+                    fontSize: isMobile ? "10px" : "12px",
                     borderRight: "1px solid #ddd",
                     borderBottom: "2px solid #ddd",
                   }}
                 >
-                  <Tooltip
-                    title={dayInfo.feiertag || ""}
-                    arrow
-                  >
-                    <div>
-                      <div>{dayInfo.day}</div>
-                      <div style={{ fontSize: isMobile ? "8px" : "9px" }}>
-                        {dayInfo.feiertag
-                          ? "F"
-                          : DAY_NAMES_MONDAY_START[dayInfo.weekdayMondayStart]}
-                      </div>
-                    </div>
-                  </Tooltip>
+                  {slot.label}
                 </TableCell>
               ))}
             </TableRow>
@@ -659,12 +627,12 @@ export default function RaumbelegungsplanExcel() {
             {raeume.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={daysInMonth.length + 1}
+                  colSpan={timeSlots.length + 1}
                   align="center"
                   sx={{ py: 4 }}
                 >
                   <Typography color="text.secondary">
-                    Keine Räume vorhanden
+                    Keine Räume vorhanden. Bitte legen Sie Räume im Django-Admin an.
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -678,9 +646,9 @@ export default function RaumbelegungsplanExcel() {
                       zIndex: 2,
                       backgroundColor: "white",
                       fontWeight: 500,
-                      minWidth: isMobile ? 100 : 180,
-                      maxWidth: isMobile ? 100 : 180,
-                      width: isMobile ? 100 : 180,
+                      minWidth: isMobile ? 120 : 200,
+                      maxWidth: isMobile ? 120 : 200,
+                      width: isMobile ? 120 : 200,
                       borderRight: "2px solid #ddd",
                       borderBottom: "1px solid #ddd",
                       fontSize: isMobile ? "11px" : "13px",
@@ -697,7 +665,7 @@ export default function RaumbelegungsplanExcel() {
                       {raum.kapazitaet} Personen
                     </Typography>
                   </TableCell>
-                  {daysInMonth.map((dayInfo) => renderCell(raum.id, dayInfo))}
+                  {timeSlots.map((slot) => renderCell(raum.id, slot))}
                 </TableRow>
               ))
             )}
@@ -905,62 +873,6 @@ export default function RaumbelegungsplanExcel() {
           <Button onClick={() => setDialogOpen(false)}>Abbrechen</Button>
           <Button onClick={handleSaveEntry} variant="contained">
             Speichern
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Dialog: Neuer Raum */}
-      <Dialog
-        open={roomDialogOpen}
-        onClose={() => {
-          setRoomDialogOpen(false);
-          setErrorMessage("");
-        }}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Neuer Raum</DialogTitle>
-        <DialogContent>
-          {errorMessage && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMessage("")}>
-              {errorMessage}
-            </Alert>
-          )}
-
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              fullWidth
-              label="Raumname *"
-              value={newRoom.name}
-              onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })}
-            />
-
-            <TextField
-              fullWidth
-              label="Personenanzahl *"
-              type="number"
-              value={newRoom.kapazitaet}
-              onChange={(e) =>
-                setNewRoom({ ...newRoom, kapazitaet: e.target.value })
-              }
-            />
-
-            <TextField
-              fullWidth
-              label="Beschreibung"
-              value={newRoom.beschreibung}
-              onChange={(e) =>
-                setNewRoom({ ...newRoom, beschreibung: e.target.value })
-              }
-              multiline
-              rows={3}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRoomDialogOpen(false)}>Abbrechen</Button>
-          <Button onClick={handleSaveRoom} variant="contained">
-            Anlegen
           </Button>
         </DialogActions>
       </Dialog>
