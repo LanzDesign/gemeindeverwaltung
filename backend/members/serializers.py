@@ -114,7 +114,11 @@ class MemberSerializer(serializers.ModelSerializer):
 
     def get_gruppen(self, obj):
         """Liste der Gruppen, zu denen das Mitglied gehört"""
-        return [{'id': g.id, 'name': g.name, 'size_type': g.size_type} for g in obj.gruppen.all()]
+        gruppen_list = [{'id': g.id, 'name': g.name, 'size_type': g.size_type} for g in obj.gruppen.all()]
+        # Debug logging
+        if obj.id % 10 == 1:  # Log every 10th member
+            print(f"Member {obj.id} ({obj.first_name} {obj.last_name}) has {len(gruppen_list)} groups: {gruppen_list}")
+        return gruppen_list
 
     def create(self, validated_data):
         current_services_ids = validated_data.pop('current_services_ids', [])
