@@ -382,13 +382,15 @@ function AdminDashboard() {
         // Gender filter
         if (filterMale) {
           const gender = (m.gender || '').toLowerCase();
-          console.log(`Filter Male - Member: ${m.first_name}, Gender: [${m.gender}], Lowercase: [${gender}]`);
-          if (gender !== "male" && gender !== "m" && gender !== "männlich") return false;
+          const matches = gender === "male" || gender === "m" || gender === "männlich";
+          console.log(`🔴 Filter Male - ${m.first_name}: gender="${m.gender}", lowercase="${gender}", matches=${matches}`);
+          if (!matches) return false;
         }
         if (filterFemale) {
           const gender = (m.gender || '').toLowerCase();
-          console.log(`Filter Female - Member: ${m.first_name}, Gender: [${m.gender}], Lowercase: [${gender}]`);
-          if (gender !== "female" && gender !== "f" && gender !== "weiblich") return false;
+          const matches = gender === "female" || gender === "f" || gender === "weiblich";
+          console.log(`🔴 Filter Female - ${m.first_name}: gender="${m.gender}", lowercase="${gender}", matches=${matches}`);
+          if (!matches) return false;
         }
 
         // Filter children:
