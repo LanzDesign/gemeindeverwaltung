@@ -149,7 +149,43 @@ export default function RaumbelegungsplanExcel() {
   }, [currentDate, viewMode, displayDates]);
 
   const bookingsForDates = useMemo(() => {
-    return buchungen.filter((b) => {
+    // Expandiere wiederholende Termine
+    const expandedBookings = [];
+    
+    buchungen.forEach((b) => {
+      if (b.wiederholung === "keine") {
+        // Normaler Termin ohne Wiederholung
+        expandedBookings.push(b);
+      } else {
+        // Wiederholender Termin - expandieren
+        const startDate = new Date(b.datum_start);
+        const endDate = b.wiederholung_bis ? new Date(b.wiederholung_bis) : new Date(startDate.getFullYear() + 1, 11, 31);
+        
+        let currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+          // Erstelle eine Instanz für dieses Datum
+          expandedBookings.push({
+            ...b,
+            datum_start: currentDate.toISOString().slice(0, 10),
+            datum_ende: currentDate.toISOString().slice(0, 10),
+            _isRecurring: true,
+            _originalId: b.id,
+          });
+          
+          // Nächstes Datum basierend auf Wiederholungstyp
+          if (b.wiederholung === "täglich") {
+            currentDate.setDate(currentDate.getDate() + 1);
+          } else if (b.wiederholung === "wöchentlich") {
+            currentDate.setDate(currentDate.getDate() + 7);
+          } else if (b.wiederholung === "monatlich") {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+          }
+        }
+      }
+    });
+    
+    // Filtere nur die Termine, die in displayDates liegen
+    return expandedBookings.filter((b) => {
       const bStart = b.datum_start;
       const bEnd = b.datum_ende || b.datum_start;
       return displayDates.some((date) => {
@@ -160,7 +196,40 @@ export default function RaumbelegungsplanExcel() {
   }, [buchungen, displayDates]);
 
   const bookingsForDay = useMemo(() => {
-    return buchungen.filter((b) => {
+    // Expandiere wiederholende Termine
+    const expandedBookings = [];
+    
+    buchungen.forEach((b) => {
+      if (b.wiederholung === "keine") {
+        expandedBookings.push(b);
+      } else {
+        // Wiederholender Termin
+        const startDate = new Date(b.datum_start);
+        const endDate = b.wiederholung_bis ? new Date(b.wiederholung_bis) : new Date(startDate.getFullYear() + 1, 11, 31);
+        
+        let currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+          expandedBookings.push({
+            ...b,
+            datum_start: currentDate.toISOString().slice(0, 10),
+            datum_ende: currentDate.toISOString().slice(0, 10),
+            _isRecurring: true,
+            _originalId: b.id,
+          });
+          
+          if (b.wiederholung === "täglich") {
+            currentDate.setDate(currentDate.getDate() + 1);
+          } else if (b.wiederholung === "wöchentlich") {
+            currentDate.setDate(currentDate.getDate() + 7);
+          } else if (b.wiederholung === "monatlich") {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+          }
+        }
+      }
+    });
+    
+    // Filtere für den aktuellen Tag
+    return expandedBookings.filter((b) => {
       const start = b.datum_start;
       const end = b.datum_ende || b.datum_start;
       return dayString >= start && dayString <= end;
