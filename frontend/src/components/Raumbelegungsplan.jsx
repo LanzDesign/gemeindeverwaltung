@@ -270,12 +270,22 @@ export default function RaumbelegungsplanExcel() {
       loadData();
     } catch (err) {
       const errData = err.response?.data;
+      console.error("Fehler beim Speichern:", errData);
       if (errData?.ueberschneidung) {
         setError(
           `Überschneidung: ${errData.konflikte
             .map((k) => `${k.raum}: ${k.titel}`)
             .join(", ")}`
         );
+      } else if (errData) {
+        // Zeige detaillierte Fehlermeldungen an
+        const errorMessages = Object.entries(errData)
+          .map(([field, messages]) => {
+            const msg = Array.isArray(messages) ? messages.join(", ") : messages;
+            return `${field}: ${msg}`;
+          })
+          .join("; ");
+        setError(errorMessages || "Speichern fehlgeschlagen");
       } else {
         setError("Speichern fehlgeschlagen");
       }
