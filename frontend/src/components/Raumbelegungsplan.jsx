@@ -47,55 +47,6 @@ const MONTH_NAMES = [
 
 const DAY_NAMES_MONDAY_START = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
-// Feiertage für Baden-Württemberg
-const getEasterDate = (year) => {
-  const a = year % 19,
-    b = Math.floor(year / 100),
-    c = year % 100,
-    d = Math.floor(b / 4),
-    e = b % 4;
-  const f = Math.floor((b + 8) / 25),
-    g = Math.floor((b - f + 1) / 3),
-    h = (19 * a + b - d - g + 15) % 30;
-  const i = Math.floor(c / 4),
-    k = c % 4,
-    l = (32 + 2 * e + 2 * i - h - k) % 7,
-    m = Math.floor((a + 11 * h + 22 * l) / 451);
-  const month = Math.floor((h + l - 7 * m + 114) / 31),
-    day = ((h + l - 7 * m + 114) % 31) + 1;
-  return new Date(year, month - 1, day);
-};
-
-const getHolidays = (year) => {
-  const easterDate = getEasterDate(year);
-  const addDays = (date, days) => {
-    const d = new Date(date);
-    d.setDate(d.getDate() + days);
-    return d;
-  };
-  const fd = (d) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-      d.getDate()
-    ).padStart(2, "0")}`;
-
-  return {
-    [`${year}-01-01`]: "Neujahr",
-    [`${year}-01-06`]: "Heilige Drei Könige (BW)",
-    [fd(addDays(easterDate, -2))]: "Karfreitag",
-    [fd(easterDate)]: "Ostersonntag",
-    [fd(addDays(easterDate, 1))]: "Ostermontag",
-    [`${year}-05-01`]: "Tag der Arbeit",
-    [fd(addDays(easterDate, 39))]: "Christi Himmelfahrt",
-    [fd(addDays(easterDate, 49))]: "Pfingstsonntag",
-    [fd(addDays(easterDate, 50))]: "Pfingstmontag",
-    [fd(addDays(easterDate, 60))]: "Fronleichnam (BW)",
-    [`${year}-10-03`]: "Tag der Deutschen Einheit",
-    [`${year}-11-01`]: "Allerheiligen (BW)",
-    [`${year}-12-25`]: "1. Weihnachtstag",
-    [`${year}-12-26`]: "2. Weihnachtstag",
-  };
-};
-
 export default function RaumbelegungsplanExcel() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -134,22 +85,46 @@ export default function RaumbelegungsplanExcel() {
   });
 
   const [errorMessage, setErrorMessage] = useState("");
+  const tableContainerRef = React.useRef(null);
 
   useEffect(() => {
     loadData();
   }, [currentDate]);
 
+  // Auto-scroll zu 6:00 Uhr beim Laden
+  useEffect(() => {
+    if (tableContainerRef.current) {
+      setTimeout(() => {
+        const hourCell = tableContainerRef.current.querySelector(
+          'th[aria-label="06:00"]'
+        );
+        if (hourCell) {
+          hourCell.scrollIntoView({ behavior: "auto", block: "start", inline: "start" });
+        }
+      }, 100);
+    }
+  }, [buchungen]);
+
   const loadData = async () => {
     try {
       const jahr = currentDate.getFullYear();
-      const [raeume Res, buchungenRes] = await Promise.all([
+      const [raeumeRes, buchungenRes, feiertageRes] = await Promise.all([
         axiosInstance.get("/api/kalender/raeume/"),
         axiosInstance.get("/api/kalender/raumbelegungen/"),
+        axiosInstance.get(`/api/kalender/feiertage/?jahr=${jahr}`),
       ]);
       
-      setRaeume(raeume Res.data);
+      setRaeume(raeumeRes.data);
       setBuchungen(buchungenRes.data);
-      setHolidays(getHolidays(jahr));
+      
+      // Konvertiere Feiertage zu Dictionary
+      const holidayDict = {};
+      if (feiertageRes.data.feiertage) {
+        feiertageRes.data.feiertage.forEach(ft => {
+          holidayDict[ft.datum] = ft.name;
+        });
+      }
+      setHolidays(holidayDict);
     } catch (error) {
       console.error("Fehler beim Laden:", error);
     }
@@ -358,6 +333,67 @@ export default function RaumbelegungsplanExcel() {
     window.print();
   };
 
+  const handleExportICS = () => {
+    if (buchungen.length === 0) {
+      alert("Keine Termine zum Exportieren vorhanden");
+      return;
+    }
+
+    // ICS Header
+    let icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Gemeindeverwaltung FECG//Raumbelegungsplan//DE
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Raumbelegungsplan
+X-WR-TIMEZONE:Europe/Berlin
+`;
+
+    // Ereignisse hinzufügen
+    buchungen.forEach((booking) => {
+      const start = `${booking.datum_start.replace(/-/g, "")}T${booking.startzeit.replace(
+        /:/g,
+        ""
+      )}00`;
+      const end = `${booking.datum_start.replace(/-/g, "")}T${booking.endzeit.replace(
+        /:/g,
+        ""
+      )}00`;
+      const uid = `${booking.id}@raumbelegungsplan.local`;
+      const created = new Date().toISOString().replace(/[:-]/g, "").split(".")[0] + "Z";
+      
+      const title = `${booking.titel} (${booking.raum_namen?.join(", ") || "Raum"})`;
+      const description = `Kontakt: ${booking.kontaktperson}, Tel: ${booking.telefon}\nBeschreibung: ${booking.beschreibung || ""}`;
+
+      icsContent += `BEGIN:VEVENT
+UID:${uid}
+DTSTAMP:${created}
+DTSTART:${start}
+DTEND:${end}
+SUMMARY:${title}
+DESCRIPTION:${description}
+LOCATION:${booking.raum_namen?.join(", ") || "Raum"}
+END:VEVENT
+`;
+    });
+
+    icsContent += "END:VCALENDAR";
+
+    // Download
+    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `raumbelegungsplan-${currentDateString}.ics`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleOpenRoomDetails = (raum) => {
     setSelectedRoomDetails(raum);
     setRoomDetailsOpen(true);
@@ -393,7 +429,9 @@ export default function RaumbelegungsplanExcel() {
       return "FT";
     }
     return "T";
-  };timeSlot) => {
+  };
+
+  const renderCell = (raumId, timeSlot) => {
     const bookings = getBookingsForTimeSlot(raumId, timeSlot.hour);
 
     return (
@@ -488,8 +526,9 @@ export default function RaumbelegungsplanExcel() {
             })}
           </Box>
         )}
-          })}
-        </Box>
+      </TableCell>
+    );
+  };        </Box>
       </TableCell>
     );
   };
@@ -511,17 +550,32 @@ export default function RaumbelegungsplanExcel() {
           >
             <ChevronLeft />
           </IconButton>
-          <Typography
-            variant={isMobile ? "h6" : "h5"}
-            sx={{ minWidth: 250, textAlign: "center" }}
-          >
-            {currentDate.toLocaleDateString("de-DE", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </Typography>
+          <Box sx={{ minWidth: 250 }}>
+            <Typography
+              variant={isMobile ? "h6" : "h5"}
+              sx={{ textAlign: "center" }}
+            >
+              {currentDate.toLocaleDateString("de-DE", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </Typography>
+            {currentDayInfo.feiertag && (
+              <Chip
+                label={`🎉 ${currentDayInfo.feiertag}`}
+                size="small"
+                sx={{
+                  mt: 0.5,
+                  width: "100%",
+                  bgcolor: "#fee2e2",
+                  color: "#dc2626",
+                  fontWeight: "bold",
+                }}
+              />
+            )}
+          </Box>
           <IconButton
             onClick={handleNextDay}
             size={isMobile ? "small" : "medium"}
@@ -540,6 +594,13 @@ export default function RaumbelegungsplanExcel() {
             startIcon={<Print />}
           >
             Drucken
+          </Button>
+          <Button
+            onClick={handleExportICS}
+            size="small"
+            variant="outlined"
+          >
+            ICS Export
           </Button>
         </Stack>
       </Stack>
@@ -570,6 +631,7 @@ export default function RaumbelegungsplanExcel() {
 
       {/* Kalender Tabelle - Zeitstrahl */}
       <TableContainer
+        ref={tableContainerRef}
         component={Paper}
         sx={{
           maxHeight: "calc(100vh - 280px)",
@@ -605,6 +667,7 @@ export default function RaumbelegungsplanExcel() {
                 <TableCell
                   key={slot.hour}
                   align="center"
+                  aria-label={slot.label}
                   sx={{
                     minWidth: isMobile ? 50 : 80,
                     maxWidth: isMobile ? 50 : 80,

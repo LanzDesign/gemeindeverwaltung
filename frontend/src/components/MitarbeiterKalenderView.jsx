@@ -31,7 +31,9 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PrintIcon from "@mui/icons-material/Print";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import axiosInstance from "../api/axios";
+import * as XLSX from "xlsx";
 
 const MONTH_NAMES = [
   "Januar",
@@ -245,6 +247,87 @@ export default function MitarbeiterKalenderView() {
     window.print();
   };
 
+  const handleExportExcel = () => {
+    if (mitarbeiter.length === 0) {
+      alert("Keine Mitarbeiter zum Exportieren vorhanden");
+      return;
+    }
+
+    const jahr = currentDate.getFullYear();
+    const workbook = XLSX.utils.book_new();
+
+    // Für jeden Monat ein Sheet erstellen
+    for (let monat = 1; monat <= 12; monat++) {
+      const monthName = MONTH_NAMES[monat - 1];
+      const sheetName = `${monthName} ${jahr}`;
+
+      // Berechne Tage für diesen Monat
+      const daysInThisMonth = [];
+      const lastDay = new Date(jahr, monat, 0);
+      for (let d = 1; d <= lastDay.getDate(); d++) {
+        const date = new Date(jahr, monat - 1, d);
+        const dayOfWeek = date.getDay();
+        const dateString = `${jahr}-${String(monat).padStart(2, "0")}-${String(
+          d
+        ).padStart(2, "0")}`;
+        daysInThisMonth.push({
+          day: d,
+          weekday: dayOfWeek,
+          dateString: dateString,
+          isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+        });
+      }
+
+      // Erstelle Tabelle
+      const tableData = [
+        // Header mit Datum
+        [
+          "Mitarbeiter",
+          ...daysInThisMonth.map((d) => `${d.day}`),
+        ],
+        // Subheader mit Wochentag
+        [
+          "",
+          ...daysInThisMonth.map((d) => DAY_NAMES_MONDAY_START[d.weekday === 0 ? 6 : d.weekday - 1]),
+        ],
+      ];
+
+      // Für jeden Mitarbeiter eine Zeile
+      mitarbeiter.forEach((ma) => {
+        const row = [ma.vollstaendiger_name];
+        
+        daysInThisMonth.forEach((dayInfo) => {
+          const dayEntries = eintraege.filter((e) => {
+            const matches =
+              e.mitarbeiter === ma.id &&
+              dayInfo.dateString >= e.datum_start &&
+              dayInfo.dateString <= (e.datum_ende || e.datum_start);
+            return matches;
+          });
+
+          // Erstelle Abkürzung
+          if (dayEntries.length === 0) {
+            row.push("");
+          } else {
+            const abbrevs = dayEntries.map((e) => {
+              const kat = kategorien.find((k) => k.id === e.kategorie);
+              return kat?.abkuerzung || "?";
+            });
+            row.push(abbrevs.join("/"));
+          }
+        });
+
+        tableData.push(row);
+      });
+
+      const worksheet = XLSX.utils.aoa_to_sheet(tableData);
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    }
+
+    // Download
+    XLSX.writeFile(workbook, `mitarbeiter-jahreskalender-${jahr}.xlsx`);
+  };
+
   const handleOpenMitarbeiterDetails = (mitarbeiter) => {
     setSelectedMitarbeiterDetails(mitarbeiter);
     setMitarbeiterDetailsOpen(true);
@@ -327,6 +410,27 @@ export default function MitarbeiterKalenderView() {
             height: "100%",
           }}
         >
+          {/* Zeige Feiertag als Eintrag an */}
+          {isFeiertag && (
+            <Tooltip title={dayInfo.feiertag.name} arrow placement="top">
+              <Box
+                sx={{
+                  backgroundColor: "#dc2626",
+                  color: "white",
+                  fontSize: isMobile ? "9px" : "11px",
+                  fontWeight: "bold",
+                  padding: "2px 4px",
+                  borderRadius: "3px",
+                  minWidth: isMobile ? "18px" : "22px",
+                  textAlign: "center",
+                  lineHeight: 1.2,
+                  width: "100%",
+                }}
+              >
+                F
+              </Box>
+            </Tooltip>
+          )}
           {entries.map((entry, idx) => {
             const kat = kategorien.find((k) => k.id === entry.kategorie);
             const color = kat?.farbe || "#6b7280";
@@ -424,11 +528,33 @@ export default function MitarbeiterKalenderView() {
           >
             Drucken
           </Button>
+          <Button
+            onClick={handleExportExcel}
+            size="small"
+            variant="outlined"
+            startIcon={<FileDownloadIcon />}
+          >
+            Excel Export
+          </Button>
         </Stack>
       </Stack>
 
       {/* Legende */}
       <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2, gap: 1 }}>
+        {/* Feiertag-Legende */}
+        <Box
+          sx={{
+            backgroundColor: "#dc2626",
+            color: "white",
+            padding: "4px 12px",
+            borderRadius: "4px",
+            fontSize: "12px",
+            fontWeight: "bold",
+          }}
+        >
+          F = Feiertag
+        </Box>
+        
         {kategorien.map((kat) => (
           <Box
             key={kat.id}
