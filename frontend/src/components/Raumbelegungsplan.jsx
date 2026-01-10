@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Paper,
@@ -10,24 +10,17 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Chip,
-  Stack,
-  useTheme,
-  useMediaQuery,
-  Tooltip,
-  Select,
-  MenuItem,
+  Alert,
+  Grid,
+  Card,
+  CardContent,
   FormControl,
   InputLabel,
-  Checkbox,
-  Alert,
-  ListItemText,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  Select,
+  MenuItem,
+  Stack,
+  Chip,
+  Container,
 } from "@mui/material";
 import {
   ChevronLeft,
@@ -36,38 +29,43 @@ import {
   Edit,
   Delete,
   Warning,
-  Print,
+  Close,
+  Download,
 } from "@mui/icons-material";
 import axiosInstance from "../api/axios";
+import * as XLSX from "xlsx";
 
 const MONTH_NAMES = [
   "Januar", "Februar", "März", "April", "Mai", "Juni",
   "Juli", "August", "September", "Oktober", "November", "Dezember",
 ];
 
-const DAY_NAMES_MONDAY_START = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+// Farben für Kategorien
+const KATEGORIE_FARBEN = {
+  F: "#ef4444",      // Feiertag - Rot
+  T: "#2563eb",      // Termin - Blau
+  W: "#eab308",      // Wiederholend - Gelb
+  FT: "#9333ea",     // Festgelegt - Lila
+};
 
 export default function RaumbelegungsplanExcel() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-
   const [currentDate, setCurrentDate] = useState(new Date());
   const [raeume, setRaeume] = useState([]);
   const [buchungen, setBuchungen] = useState([]);
   const [holidays, setHolidays] = useState({});
-  
-  // Dialogs
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [roomDetailsOpen, setRoomDetailsOpen] = useState(false);
-  
-  // Form states
-  const [editingEntry, setEditingEntry] = useState(null);
-  const [selectedRoom, setSelectedRoom] = useState(null);
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedRoomDetails, setSelectedRoomDetails] = useState(null);
-  const [confirmAction, setConfirmAction] = useState(null);
-  
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [dayViewOpen, setDayViewOpen] = useState(false);
+  const [dayViewBookings, setDayViewBookings] = useState([]);
+
+  // Dialog States
+  const [newTerminDialogOpen, setNewTerminDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // Form States
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     raum: [],
     titel: "",
@@ -84,815 +82,594 @@ export default function RaumbelegungsplanExcel() {
     beschreibung: "",
   });
 
-  const [errorMessage, setErrorMessage] = useState("");
-  const tableContainerRef = React.useRef(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     loadData();
   }, [currentDate]);
 
-  // Auto-scroll zu 6:00 Uhr beim Laden
-  useEffect(() => {
-    if (tableContainerRef.current) {
-      setTimeout(() => {
-        const hourCell = tableContainerRef.current.querySelector(
-          'th[aria-label="06:00"]'
-        );
-        if (hourCell) {
-          hourCell.scrollIntoView({ behavior: "auto", block: "start", inline: "start" });
-        }
-      }, 100);
-    }
-  }, [buchungen]);
-
   const loadData = async () => {
     try {
-      const jahr = currentDate.getFullYear();
-      const [raeumeRes, buchungenRes, feiertageRes] = await Promise.all([
-        axiosInstance.get("/api/kalender/raeume/"),
-        axiosInstance.get("/api/kalender/raumbelegungen/"),
-        axiosInstance.get(`/api/kalender/feiertage/?jahr=${jahr}`),
+      const [raeume_res, buchungen_res, holidays_res] = await Promise.all([
+        axiosInstance.get("/kalender/raum/"),
+        axiosInstance.get("/kalender/raumbelegung/"),
+        axiosInstance.get("/kalender/feiertage/?jahr=" + currentDate.getFullYear() + "&monat=" + (currentDate.getMonth() + 1)),
       ]);
-      
-      setRaeume(raeumeRes.data);
-      setBuchungen(buchungenRes.data);
-      
-      // Konvertiere Feiertage zu Dictionary
-      const holidayDict = {};
-      if (feiertageRes.data.feiertage) {
-        feiertageRes.data.feiertage.forEach(ft => {
-          holidayDict[ft.datum] = ft.name;
-        });
-      }
-      setHolidays(holidayDict);
-    } catch (error) {
-      console.error("Fehler beim Laden:", error);
-    }
-  };
 
-  // Berechne Zeitslots (Stunden)
-  const timeSlots = useMemo(() => {
-    const slots = [];
-    for (let hour = 6; hour <= 22; hour++) {
-      slots.push({
-        hour,
-        label: `${String(hour).padStart(2, "0")}:00`,
+      setRaeume(raeume_res.data);
+      setBuchungen(buchungen_res.data);
+
+      // Organisiere Feiertage nach Datum
+      const feiertageMap = {};
+      holidays_res.data.feiertage?.forEach((f) => {
+        feiertageMap[f.datum] = f;
       });
+      setHolidays(feiertageMap);
+    } catch (error) {
+      console.error("Fehler beim Laden der Daten:", error);
+      setErrorMessage("Fehler beim Laden der Daten");
     }
-    return slots;
-  }, []);
+  };
 
-  // Formatiere aktuelles Datum
-  const currentDateString = useMemo(() => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const day = currentDate.getDate();
-    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-  }, [currentDate]);
+  const getDaysInMonth = () => {
+    return new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  };
 
-  const currentDayInfo = useMemo(() => {
-    const dayOfWeek = currentDate.getDay();
-    const feiertag = holidays[currentDateString];
-    return {
-      isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
-      feiertag: feiertag || null,
-      dateString: currentDateString,
-    };
-  }, [currentDate, currentDateString, holidays]);
+  const getFirstDayOfMonth = () => {
+    return new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+  };
 
-  // Hole Buchungen für bestimmten Zeitslot und Raum
-  const getBookingsForTimeSlot = (raumId, hour) => {
-    return buchungen.filter((booking) => {
-      const matchesRoom = booking.raum && booking.raum.includes(raumId);
-      const matchesDate = booking.datum_start === currentDateString;
-      
-      if (!matchesRoom || !matchesDate) return false;
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+  };
 
-      // Prüfe ob Buchung in diesem Zeitslot ist
-      const [startHour] = booking.startzeit.split(":").map(Number);
-      const [endHour] = booking.endzeit.split(":").map(Number);
-      
-      return hour >= startHour && hour < endHour;
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+  };
+
+  const handleDayClick = (day) => {
+    const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    const dateStr = clickedDate.toISOString().split("T")[0];
+
+    // Hole Buchungen für diesen Tag
+    const bookingsForDay = buchungen.filter((b) => {
+      const bStart = new Date(b.datum_start);
+      const bEnd = b.datum_ende ? new Date(b.datum_ende) : bStart;
+      return clickedDate >= bStart && clickedDate <= bEnd;
     });
+
+    setSelectedDate(dateStr);
+    setDayViewBookings(bookingsForDay);
+    setDayViewOpen(true);
   };
 
-  const handlePrevDay = () => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() - 1);
-    setCurrentDate(newDate);
-  };
-
-  const handleNextDay = () => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() + 1);
-    setCurrentDate(newDate);
-  };
-
-  const handleToday = () => {
-    setCurrentDate(new Date());
-  };
-
-  const handleCellClick = (raumId, hour) => {
-    setSelectedRoom(raumId);
-    setSelectedDate(currentDateString);
+  const handleNewTermin = () => {
     setFormData({
-      ...formData,
-      raum: [raumId],
-      datum_start: currentDateString,
-      datum_ende: currentDateString,
-      startzeit: `${String(hour).padStart(2, "0")}:00`,
-      endzeit: `${String(hour + 1).padStart(2, "0")}:00`,
+      raum: [],
+      titel: "",
+      kontaktperson: "",
+      telefon: "",
+      teilnehmerzahl: "",
+      datum_start: selectedDate || "",
+      datum_ende: "",
+      startzeit: "09:00",
+      endzeit: "17:00",
+      kategorie: "termin",
+      wiederholung: "keine",
+      wiederholung_bis: "",
+      beschreibung: "",
     });
-    setEditingEntry(null);
-    setDialogOpen(true);
+    setEditingId(null);
+    setNewTerminDialogOpen(true);
   };
 
-  const handleEditEntry = (entry) => {
-    setEditingEntry(entry);
+  const handleEditTermin = (buchung) => {
     setFormData({
-      raum: entry.raum || [],
-      titel: entry.titel,
-      kontaktperson: entry.kontaktperson || "",
-      telefon: entry.telefon || "",
-      teilnehmerzahl: entry.teilnehmerzahl || "",
-      datum_start: entry.datum_start,
-      datum_ende: entry.datum_ende || entry.datum_start,
-      startzeit: entry.startzeit || "09:00",
-      endzeit: entry.endzeit || "17:00",
-      kategorie: entry.kategorie || "termin",
-      wiederholung: entry.wiederholung || "keine",
-      wiederholung_bis: entry.wiederholung_bis || "",
-      beschreibung: entry.beschreibung || "",
+      raum: buchung.raum,
+      titel: buchung.titel,
+      kontaktperson: buchung.kontaktperson,
+      telefon: buchung.telefon,
+      teilnehmerzahl: buchung.teilnehmerzahl || "",
+      datum_start: buchung.datum_start,
+      datum_ende: buchung.datum_ende || "",
+      startzeit: buchung.startzeit,
+      endzeit: buchung.endzeit,
+      kategorie: buchung.kategorie,
+      wiederholung: buchung.wiederholung,
+      wiederholung_bis: buchung.wiederholung_bis || "",
+      beschreibung: buchung.beschreibung,
     });
-    setDialogOpen(true);
+    setEditingId(buchung.id);
+    setEditDialogOpen(true);
   };
 
-  const handleSaveEntry = async () => {
+  const handleDeleteTermin = (buchung) => {
+    setDeleteTarget(buchung);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await axiosInstance.delete(`/kalender/raumbelegung/${deleteTarget.id}/`);
+      setSuccessMessage("Termin gelöscht");
+      setDeleteConfirmOpen(false);
+      setDeleteTarget(null);
+      loadData();
+    } catch (error) {
+      setErrorMessage(error.response?.data?.detail || "Fehler beim Löschen");
+    }
+  };
+
+  const handleSaveTermin = async () => {
     // Validierung
-    if (!formData.titel.trim()) {
-      setErrorMessage("Bitte geben Sie einen Titel ein");
-      return;
-    }
-    
     if (!formData.kontaktperson.trim()) {
-      setErrorMessage("Name der Kontaktperson ist ein Pflichtfeld");
+      setErrorMessage("Name der Kontaktperson ist erforderlich");
       return;
     }
-    
     if (!formData.telefon.trim()) {
-      setErrorMessage("Telefonnummer ist ein Pflichtfeld");
+      setErrorMessage("Telefonnummer ist erforderlich");
       return;
     }
-    
+    if (!formData.datum_start) {
+      setErrorMessage("Startdatum ist erforderlich");
+      return;
+    }
     if (formData.raum.length === 0) {
-      setErrorMessage("Bitte wählen Sie mindestens einen Raum aus");
+      setErrorMessage("Mindestens ein Raum muss ausgewählt werden");
       return;
     }
-
-    const buchungData = {
-      ...formData,
-      teilnehmerzahl: formData.teilnehmerzahl ? parseInt(formData.teilnehmerzahl) : null,
-      datum_ende: formData.datum_ende || null,
-      wiederholung_bis: formData.wiederholung_bis || null,
-    };
 
     try {
-      if (editingEntry) {
-        // Bestätigungsdialog für Bearbeitung
-        setConfirmAction({
-          type: "edit",
-          data: buchungData,
-          message: `Möchten Sie den Termin "${formData.titel}" wirklich bearbeiten?`,
-          onConfirm: async () => {
-            try {
-              await axiosInstance.put(
-                `/api/kalender/raumbelegungen/${editingEntry.id}/`,
-                buchungData
-              );
-              await loadData();
-              setDialogOpen(false);
-              setConfirmDialogOpen(false);
-              setErrorMessage("");
-            } catch (error) {
-              handleSaveError(error);
-            }
-          },
-        });
-        setConfirmDialogOpen(true);
+      const payload = {
+        ...formData,
+        teilnehmerzahl: formData.teilnehmerzahl ? parseInt(formData.teilnehmerzahl) : null,
+      };
+
+      if (editingId) {
+        await axiosInstance.put(`/kalender/raumbelegung/${editingId}/`, payload);
+        setSuccessMessage("Termin aktualisiert");
       } else {
-        await axiosInstance.post("/api/kalender/raumbelegungen/", buchungData);
-        await loadData();
-        setDialogOpen(false);
-        setErrorMessage("");
+        await axiosInstance.post("/kalender/raumbelegung/", payload);
+        setSuccessMessage("Termin erstellt");
       }
+
+      setNewTerminDialogOpen(false);
+      setEditDialogOpen(false);
+      loadData();
     } catch (error) {
-      handleSaveError(error);
+      const errorData = error.response?.data;
+      if (errorData?.ueberschneidung) {
+        setErrorMessage(
+          `Überschneidung gefunden: ${errorData.konflikte
+            .map((k) => `${k.raum}: ${k.titel}`)
+            .join(", ")}`
+        );
+      } else {
+        setErrorMessage(
+          errorData?.detail || errorData?.non_field_errors?.[0] || "Fehler beim Speichern"
+        );
+      }
     }
   };
 
-  const handleSaveError = (error) => {
-    console.error("Fehler beim Speichern:", error);
-    if (error.response?.data?.ueberschneidung) {
-      const konflikte = error.response.data.konflikte || [];
-      const msg = konflikte
-        .map((k) => `${k.raum}: ${k.titel} am ${k.datum} (${k.zeit})`)
-        .join("\n");
-      setErrorMessage(`Überschneidung gefunden:\n${msg}`);
-    } else if (error.response?.data) {
-      const errors = Object.entries(error.response.data)
-        .map(([key, value]) => `${key}: ${value}`)
-        .join(", ");
-      setErrorMessage(`Fehler: ${errors}`);
-    } else {
-      setErrorMessage("Fehler beim Speichern des Termins");
-    }
-    setConfirmDialogOpen(false);
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleDeleteEntry = (entry) => {
-    setConfirmAction({
-      type: "delete",
-      data: entry,
-      message: `Möchten Sie den Termin "${entry.titel}" wirklich löschen?`,
-      onConfirm: async () => {
-        try {
-          await axiosInstance.delete(`/api/kalender/raumbelegungen/${entry.id}/`);
-          await loadData();
-          setDialogOpen(false);
-          setConfirmDialogOpen(false);
-        } catch (error) {
-          console.error("Fehler beim Löschen:", error);
-          setErrorMessage("Fehler beim Löschen des Termins");
-        }
-      },
+  const handleRaumChange = (event) => {
+    setFormData((prev) => ({
+      ...prev,
+      raum: event.target.value,
+    }));
+  };
+
+  const getKategoryTag = (buchung) => {
+    let kategorie = "T"; // Default Termin
+    if (buchung.wiederholung !== "keine") {
+      kategorie = "W"; // Wiederholend
+    } else if (buchung.kategorie === "fest") {
+      kategorie = "FT"; // Festgelegt
+    }
+    return kategorie;
+  };
+
+  const exportToExcel = () => {
+    const workbook = XLSX.utils.book_new();
+
+    // 1. Zusammenfassungsblatt
+    const summaryData = [];
+    raeume.forEach((raum) => {
+      const raumBuchungen = buchungen.filter((b) => b.raum_namen.includes(raum.name));
+      summaryData.push({
+        Raum: raum.name,
+        Kapazität: raum.kapazitaet,
+        Buchungen: raumBuchungen.length,
+        "% Auslastung": raeume.length > 0 ? ((raumBuchungen.length / 30) * 100).toFixed(1) + "%" : "0%",
+      });
     });
-    setConfirmDialogOpen(true);
-  };
+    const summarySheet = XLSX.utils.json_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "Übersicht");
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleExportICS = () => {
-    if (buchungen.length === 0) {
-      alert("Keine Termine zum Exportieren vorhanden");
-      return;
-    }
-
-    // ICS Header
-    let icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Gemeindeverwaltung FECG//Raumbelegungsplan//DE
-CALSCALE:GREGORIAN
-METHOD:PUBLISH
-X-WR-CALNAME:Raumbelegungsplan
-X-WR-TIMEZONE:Europe/Berlin
-`;
-
-    // Ereignisse hinzufügen
-    buchungen.forEach((booking) => {
-      const start = `${booking.datum_start.replace(/-/g, "")}T${booking.startzeit.replace(
-        /:/g,
-        ""
-      )}00`;
-      const end = `${booking.datum_start.replace(/-/g, "")}T${booking.endzeit.replace(
-        /:/g,
-        ""
-      )}00`;
-      const uid = `${booking.id}@raumbelegungsplan.local`;
-      const created = new Date().toISOString().replace(/[:-]/g, "").split(".")[0] + "Z";
-      
-      const title = `${booking.titel} (${booking.raum_namen?.join(", ") || "Raum"})`;
-      const description = `Kontakt: ${booking.kontaktperson}, Tel: ${booking.telefon}\nBeschreibung: ${booking.beschreibung || ""}`;
-
-      icsContent += `BEGIN:VEVENT
-UID:${uid}
-DTSTAMP:${created}
-DTSTART:${start}
-DTEND:${end}
-SUMMARY:${title}
-DESCRIPTION:${description}
-LOCATION:${booking.raum_namen?.join(", ") || "Raum"}
-END:VEVENT
-`;
+    // 2. Monatliche Blätter pro Raum
+    raeume.forEach((raum) => {
+      const raumBuchungen = buchungen.filter((b) => b.raum_namen.includes(raum.name));
+      const sheetData = raumBuchungen.map((b) => ({
+        Termin: b.titel,
+        Kontakt: b.kontaktperson,
+        Telefon: b.telefon,
+        Teilnehmer: b.teilnehmerzahl || "-",
+        Startdatum: b.datum_start,
+        Enddatum: b.datum_ende || b.datum_start,
+        Startzeit: b.startzeit,
+        Endzeit: b.endzeit,
+        Kategorie: getKategoryTag(b),
+        Wiederholung: b.wiederholung,
+        Beschreibung: b.beschreibung || "",
+      }));
+      const sheet = XLSX.utils.json_to_sheet(sheetData);
+      XLSX.utils.book_append_sheet(workbook, sheet, raum.name.slice(0, 31));
     });
 
-    icsContent += "END:VCALENDAR";
-
-    // Download
-    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `raumbelegungsplan-${currentDateString}.ics`
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    XLSX.writeFile(workbook, `Raumbelegungsplan_${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}.xlsx`);
   };
 
-  const handleOpenRoomDetails = (raum) => {
-    setSelectedRoomDetails(raum);
-    setRoomDetailsOpen(true);
-  };
+  // Rendere Kalender Grid
+  const days = [];
+  const daysInMonth = getDaysInMonth();
+  const firstDay = getFirstDayOfMonth();
 
-  const getBookingsForRoom = (raumId) => {
-    return buchungen.filter((b) => {
-      const matchesRoom = b.raum && b.raum.includes(raumId);
-      const matchesDate = b.datum_start === currentDateString;
-      return matchesRoom && matchesDate;
-    }).sort((a, b) => {
-      const [aHour, aMin] = a.startzeit.split(":").map(Number);
-      const [bHour, bMin] = b.startzeit.split(":").map(Number);
-      return (aHour * 60 + aMin) - (bHour * 60 + bMin);
+  // Leere Tage am Anfang
+  for (let i = 0; i < firstDay; i++) {
+    days.push(null);
+  }
+
+  // Tage des Monats
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    const dateStr = dateObj.toISOString().split("T")[0];
+    const isFeiertag = !!holidays[dateStr];
+    const dayBookings = buchungen.filter((b) => {
+      const bStart = new Date(b.datum_start);
+      const bEnd = b.datum_ende ? new Date(b.datum_ende) : bStart;
+      return dateObj >= bStart && dateObj <= bEnd;
     });
-  };
 
-  const getBookingColor = (booking) => {
-    if (booking.wiederholung && booking.wiederholung !== "keine") {
-      return "#eab308"; // Gelb (W)
-    }
-    if (booking.kategorie === "fest") {
-      return "#9333ea"; // Lila (FT)
-    }
-    return "#2563eb"; // Blau (T)
-  };
-
-  const getBookingLabel = (booking) => {
-    if (booking.wiederholung && booking.wiederholung !== "keine") {
-      return "W";
-    }
-    if (booking.kategorie === "fest") {
-      return "FT";
-    }
-    return "T";
-  };
-
-  const renderCell = (raumId, timeSlot) => {
-    const bookings = getBookingsForTimeSlot(raumId, timeSlot.hour);
-
-    return (
-      <TableCell
-        key={timeSlot.hour}
-        align="center"
-        onClick={() => handleCellClick(raumId, timeSlot.hour)}
-        sx={{
-          minWidth: isMobile ? 50 : 80,
-          maxWidth: isMobile ? 50 : 80,
-          width: isMobile ? 50 : 80,
-          padding: "4px",
-          backgroundColor: currentDayInfo.feiertag
-            ? "#fee2e2"
-            : currentDayInfo.isWeekend
-            ? "#f5f5f5"
-            : "white",
-          borderRight: "1px solid #ddd",
-          borderBottom: "1px solid #ddd",
-          cursor: "pointer",
-          position: "relative",
-          verticalAlign: "middle",
-          height: isMobile ? "50px" : "60px",
-          "&:hover": {
-            backgroundColor: "#e3f2fd",
-          },
-        }}
-      >
-        {bookings.length > 0 && (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 0.5,
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-            }}
-          >
-            {bookings.map((booking, idx) => {
-              const color = getBookingColor(booking);
-              const label = getBookingLabel(booking);
-              
-              // Berechne Dauer in Stunden
-              const [startHour, startMin] = booking.startzeit.split(":").map(Number);
-              const [endHour, endMin] = booking.endzeit.split(":").map(Number);
-              const duration = (endHour * 60 + endMin - startHour * 60 - startMin) / 60;
-
-              return (
-                <Tooltip
-                  key={idx}
-                  title={
-                    <div>
-                      <strong>{booking.titel}</strong><br />
-                      {booking.kontaktperson}<br />
-                      {booking.startzeit} - {booking.endzeit}<br />
-                      {booking.teilnehmerzahl && `${booking.teilnehmerzahl} Personen`}
-                    </div>
-                  }
-                  arrow
-                  placement="top"
-                >
-                  <Box
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditEntry(booking);
-                    }}
-                    sx={{
-                      backgroundColor: color,
-                      color: "white",
-                      fontSize: isMobile ? "10px" : "12px",
-                      fontWeight: "bold",
-                      padding: "4px 6px",
-                      borderRadius: "4px",
-                      width: "100%",
-                      textAlign: "center",
-                      cursor: "pointer",
-                      "&:hover": {
-                        opacity: 0.8,
-                        transform: "scale(1.05)",
-                      },
-                      transition: "all 0.2s",
-                    }}
-                  >
-                    <div>{label}</div>
-                    <Typography variant="caption" sx={{ fontSize: "9px" }}>
-                      {booking.startzeit}
-                    </Typography>
-                  </Box>
-                </Tooltip>
-              );
-            })}
-          </Box>
-        )}
-      </TableCell>
-    );
-  };        </Box>
-      </TableCell>
-    );
-  };
+    days.push({
+      day,
+      dateStr,
+      isFeiertag,
+      bookingCount: dayBookings.length,
+    });
+  }
 
   return (
-    <Box>
-      {/* Header mit Tagesnavigation */}
-      <Stack
-        direction="row"
-        spacing={2}
-        alignItems="center"
-        justifyContent="space-between"
-        sx={{ mb: 2 }}
-      >
-        <Stack direction="row" spacing={1} alignItems="center">
-          <IconButton
-            onClick={handlePrevDay}
-            size={isMobile ? "small" : "medium"}
-          >
+    <Container maxWidth="lg" sx={{ py: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton onClick={handlePrevMonth}>
             <ChevronLeft />
           </IconButton>
-          <Box sx={{ minWidth: 250 }}>
-            <Typography
-              variant={isMobile ? "h6" : "h5"}
-              sx={{ textAlign: "center" }}
-            >
-              {currentDate.toLocaleDateString("de-DE", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}
-            </Typography>
-            {currentDayInfo.feiertag && (
-              <Chip
-                label={`🎉 ${currentDayInfo.feiertag}`}
-                size="small"
-                sx={{
-                  mt: 0.5,
-                  width: "100%",
-                  bgcolor: "#fee2e2",
-                  color: "#dc2626",
-                  fontWeight: "bold",
-                }}
-              />
-            )}
-          </Box>
-          <IconButton
-            onClick={handleNextDay}
-            size={isMobile ? "small" : "medium"}
-          >
+          <Typography variant="h5" sx={{ minWidth: 250 }}>
+            {MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}
+          </Typography>
+          <IconButton onClick={handleNextMonth}>
             <ChevronRight />
           </IconButton>
-        </Stack>
-        <Stack direction="row" spacing={1}>
-          <Button onClick={handleToday} size="small" variant="outlined">
-            Heute
+        </Box>
+        <Box sx={{ display: "flex", gap: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Add />}
+            onClick={handleNewTermin}
+          >
+            Neuer Termin
           </Button>
           <Button
-            onClick={handlePrint}
-            size="small"
             variant="outlined"
-            startIcon={<Print />}
+            startIcon={<Download />}
+            onClick={exportToExcel}
           >
-            Drucken
+            Excel Export
           </Button>
-          <Button
-            onClick={handleExportICS}
-            size="small"
-            variant="outlined"
-          >
-            ICS Export
-          </Button>
-        </Stack>
-      </Stack>
+        </Box>
+      </Box>
 
       {/* Legende */}
-      <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2, gap: 1 }}>
-        <Chip
-          label="F = Feiertag"
-          size="small"
-          sx={{ bgcolor: "#fee2e2", color: "#dc2626" }}
-        />
-        <Chip
-          label="T = Termin"
-          size="small"
-          sx={{ bgcolor: "#dbeafe", color: "#2563eb" }}
-        />
-        <Chip
-          label="W = Wiederholung"
-          size="small"
-          sx={{ bgcolor: "#fef3c7", color: "#eab308" }}
-        />
-        <Chip
-          label="FT = Festgelegt"
-          size="small"
-          sx={{ bgcolor: "#ede9fe", color: "#9333ea" }}
-        />
-      </Stack>
+      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
+        <Chip label="F - Feiertag" sx={{ backgroundColor: KATEGORIE_FARBEN.F, color: "white" }} />
+        <Chip label="T - Termin" sx={{ backgroundColor: KATEGORIE_FARBEN.T, color: "white" }} />
+        <Chip label="W - Wiederholend" sx={{ backgroundColor: KATEGORIE_FARBEN.W, color: "black" }} />
+        <Chip label="FT - Festgelegt" sx={{ backgroundColor: KATEGORIE_FARBEN.FT, color: "white" }} />
+      </Box>
 
-      {/* Kalender Tabelle - Zeitstrahl */}
-      <TableContainer
-        ref={tableContainerRef}
-        component={Paper}
-        sx={{
-          maxHeight: "calc(100vh - 280px)",
-          overflowX: "auto",
-          overflowY: "auto",
-          border: "1px solid #ddd",
-        }}
-      >
-        <Table stickyHeader size="small" sx={{ tableLayout: "fixed" }}>
-          <TableHead>
-            <TableRow>
-              <TableCell
-                sx={{
-                  position: "sticky",
-                  left: 0,
-                  zIndex: 4,
-                  backgroundColor: "#5b9bd5",
-                  color: "white",
-                  fontWeight: "bold",
-                  minWidth: isMobile ? 120 : 200,
-                  maxWidth: isMobile ? 120 : 200,
-                  width: isMobile ? 120 : 200,
-                  borderRight: "2px solid #ddd",
-                  borderBottom: "2px solid #ddd",
-                  padding: "8px",
-                  fontSize: isMobile ? "11px" : "13px",
-                }}
-              >
-                Räume
-              </TableCell>
+      {/* Meldungen */}
+      {errorMessage && (
+        <Alert severity="error" onClose={() => setErrorMessage("")} sx={{ mb: 2 }}>
+          {errorMessage}
+        </Alert>
+      )}
+      {successMessage && (
+        <Alert severity="success" onClose={() => setSuccessMessage("")} sx={{ mb: 2 }}>
+          {successMessage}
+        </Alert>
+      )}
 
-              {timeSlots.map((slot) => (
-                <TableCell
-                  key={slot.hour}
-                  align="center"
-                  aria-label={slot.label}
+      {/* Kalender Grid */}
+      <Paper sx={{ p: 2 }}>
+        <Grid container spacing={1}>
+          {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((day) => (
+            <Grid item xs={12 / 7} key={day}>
+              <Typography variant="subtitle2" sx={{ textAlign: "center", fontWeight: "bold", p: 1 }}>
+                {day}
+              </Typography>
+            </Grid>
+          ))}
+
+          {days.map((dayData, idx) => (
+            <Grid item xs={12 / 7} key={idx} sx={{ minHeight: 100 }}>
+              {dayData ? (
+                <Card
                   sx={{
-                    minWidth: isMobile ? 50 : 80,
-                    maxWidth: isMobile ? 50 : 80,
-                    width: isMobile ? 50 : 80,
-                    padding: "4px 2px",
-                    backgroundColor: "#5b9bd5",
-                    color: "white",
-                    fontWeight: "bold",
-                    fontSize: isMobile ? "10px" : "12px",
-                    borderRight: "1px solid #ddd",
-                    borderBottom: "2px solid #ddd",
+                    height: "100%",
+                    cursor: "pointer",
+                    backgroundColor: dayData.isFeiertag ? KATEGORIE_FARBEN.F : "inherit",
+                    border: "1px solid #e0e0e0",
+                    "&:hover": { backgroundColor: "#f5f5f5" },
                   }}
+                  onClick={() => handleDayClick(dayData.day)}
                 >
-                  {slot.label}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {raeume.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={timeSlots.length + 1}
-                  align="center"
-                  sx={{ py: 4 }}
-                >
-                  <Typography color="text.secondary">
-                    Keine Räume vorhanden. Bitte legen Sie Räume im Django-Admin an.
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              raeume.map((raum) => (
-                <TableRow key={raum.id}>
-                  <TableCell
-                    sx={{
-                      position: "sticky",
-                      left: 0,
-                      zIndex: 2,
-                      backgroundColor: "white",
-                      fontWeight: 500,
-                      minWidth: isMobile ? 120 : 200,
-                      maxWidth: isMobile ? 120 : 200,
-                      width: isMobile ? 120 : 200,
-                      borderRight: "2px solid #ddd",
-                      borderBottom: "1px solid #ddd",
-                      fontSize: isMobile ? "11px" : "13px",
-                      padding: "8px",
-                      cursor: "pointer",
-                      "&:hover": {
-                        backgroundColor: "#f5f5f5",
-                      },
-                    }}
-                    onClick={() => handleOpenRoomDetails(raum)}
-                  >
-                    <div>{raum.name}</div>
-                    <Typography variant="caption" color="text.secondary">
-                      {raum.kapazitaet} Personen
+                  <CardContent sx={{ p: 1 }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: "bold",
+                        color: dayData.isFeiertag ? "white" : "inherit",
+                      }}
+                    >
+                      {dayData.day}
                     </Typography>
-                  </TableCell>
-                  {timeSlots.map((slot) => renderCell(raum.id, slot))}
-                </TableRow>
+                    {dayData.isFeiertag && (
+                      <Typography variant="caption" sx={{ color: "white", fontWeight: "bold" }}>
+                        F
+                      </Typography>
+                    )}
+                    {dayData.bookingCount > 0 && (
+                      <Typography
+                        variant="caption"
+                        sx={{ display: "block", color: "#2563eb", mt: 0.5 }}
+                      >
+                        {dayData.bookingCount} Termine
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <Box />
+              )}
+            </Grid>
+          ))}
+        </Grid>
+      </Paper>
+
+      {/* Tagesansicht Dialog */}
+      <Dialog open={dayViewOpen} onClose={() => setDayViewOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography>
+              Tagesansicht {selectedDate}
+            </Typography>
+            <IconButton size="small" onClick={() => setDayViewOpen(false)}>
+              <Close />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2}>
+            {dayViewBookings.length === 0 ? (
+              <Typography color="textSecondary">Keine Termine an diesem Tag</Typography>
+            ) : (
+              dayViewBookings.map((booking) => (
+                <Card key={booking.id} variant="outlined">
+                  <CardContent>
+                    <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+                      {booking.titel}
+                    </Typography>
+                    <Typography variant="caption" color="textSecondary">
+                      {booking.startzeit} - {booking.endzeit}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      <strong>Kontakt:</strong> {booking.kontaktperson}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Telefon:</strong> {booking.telefon}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Räume:</strong> {booking.raum_namen.join(", ")}
+                    </Typography>
+                    {booking.teilnehmerzahl && (
+                      <Typography variant="body2">
+                        <strong>Teilnehmer:</strong> {booking.teilnehmerzahl}
+                      </Typography>
+                    )}
+                    <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<Edit />}
+                        onClick={() => {
+                          handleEditTermin(booking);
+                          setDayViewOpen(false);
+                        }}
+                      >
+                        Bearbeiten
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        startIcon={<Delete />}
+                        onClick={() => {
+                          handleDeleteTermin(booking);
+                          setDayViewOpen(false);
+                        }}
+                      >
+                        Löschen
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
               ))
             )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" startIcon={<Add />} onClick={handleNewTermin}>
+            Neuer Termin
+          </Button>
+          <Button onClick={() => setDayViewOpen(false)}>Schließen</Button>
+        </DialogActions>
+      </Dialog>
 
-      {/* Dialog für Termin-Erstellung/Bearbeitung */}
-      <Dialog
-        open={dialogOpen}
-        onClose={() => {
-          setDialogOpen(false);
-          setErrorMessage("");
-        }}
-        maxWidth="md"
-        fullWidth
-      >
+      {/* Neuer/Edit Termin Dialog */}
+      <Dialog open={newTerminDialogOpen || editDialogOpen} onClose={() => {
+        setNewTerminDialogOpen(false);
+        setEditDialogOpen(false);
+      }} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {editingEntry ? "Termin bearbeiten" : "Neuer Termin"}
+          {editingId ? "Termin bearbeiten" : "Neuer Termin"}
         </DialogTitle>
-        <DialogContent>
-          {errorMessage && (
-            <Alert
-              severity="error"
-              sx={{ mb: 2, whiteSpace: "pre-line" }}
-              onClose={() => setErrorMessage("")}
-            >
-              {errorMessage}
-            </Alert>
-          )}
-
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              fullWidth
-              label="Titel *"
-              value={formData.titel}
-              onChange={(e) =>
-                setFormData({ ...formData, titel: e.target.value })
-              }
-            />
-
-            <TextField
-              fullWidth
-              label="Name der Kontaktperson *"
-              value={formData.kontaktperson}
-              onChange={(e) =>
-                setFormData({ ...formData, kontaktperson: e.target.value })
-              }
-            />
-
-            <TextField
-              fullWidth
-              label="Telefonnummer *"
-              value={formData.telefon}
-              onChange={(e) =>
-                setFormData({ ...formData, telefon: e.target.value })
-              }
-            />
-
-            <TextField
-              fullWidth
-              label="Teilnehmerzahl"
-              type="number"
-              value={formData.teilnehmerzahl}
-              onChange={(e) =>
-                setFormData({ ...formData, teilnehmerzahl: e.target.value })
-              }
-            />
-
+        <DialogContent dividers sx={{ pt: 2 }}>
+          <Stack spacing={2}>
+            {/* Raum Auswahl */}
             <FormControl fullWidth>
-              <InputLabel>Räume auswählen *</InputLabel>
+              <InputLabel>Raum(e) *</InputLabel>
               <Select
                 multiple
                 value={formData.raum}
-                onChange={(e) =>
-                  setFormData({ ...formData, raum: e.target.value })
-                }
-                label="Räume auswählen *"
-                renderValue={(selected) =>
-                  selected
-                    .map((id) => raeume.find((r) => r.id === id)?.name)
-                    .filter(Boolean)
-                    .join(", ")
-                }
+                onChange={handleRaumChange}
+                label="Raum(e) *"
               >
                 {raeume.map((raum) => (
                   <MenuItem key={raum.id} value={raum.id}>
-                    <Checkbox checked={formData.raum.indexOf(raum.id) > -1} />
-                    <ListItemText
-                      primary={raum.name}
-                      secondary={`${raum.kapazitaet} Personen`}
-                    />
+                    {raum.name} ({raum.kapazitaet} Pers.)
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
 
-            <Stack direction="row" spacing={2}>
-              <TextField
-                fullWidth
-                label="Von"
-                type="date"
-                value={formData.datum_start}
-                onChange={(e) =>
-                  setFormData({ ...formData, datum_start: e.target.value })
-                }
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                fullWidth
-                label="Bis (optional)"
-                type="date"
-                value={formData.datum_ende}
-                onChange={(e) =>
-                  setFormData({ ...formData, datum_ende: e.target.value })
-                }
-                InputLabelProps={{ shrink: true }}
-              />
-            </Stack>
+            {/* Titel */}
+            <TextField
+              fullWidth
+              label="Titel"
+              name="titel"
+              value={formData.titel}
+              onChange={handleFormChange}
+            />
 
-            <Stack direction="row" spacing={2}>
-              <TextField
-                fullWidth
-                label="Startzeit"
-                type="time"
-                value={formData.startzeit}
-                onChange={(e) =>
-                  setFormData({ ...formData, startzeit: e.target.value })
-                }
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                fullWidth
-                label="Endzeit"
-                type="time"
-                value={formData.endzeit}
-                onChange={(e) =>
-                  setFormData({ ...formData, endzeit: e.target.value })
-                }
-                InputLabelProps={{ shrink: true }}
-              />
-            </Stack>
+            {/* Kontaktperson */}
+            <TextField
+              fullWidth
+              label="Kontaktperson Name *"
+              name="kontaktperson"
+              value={formData.kontaktperson}
+              onChange={handleFormChange}
+              required
+            />
 
+            {/* Telefon */}
+            <TextField
+              fullWidth
+              label="Telefonnummer *"
+              name="telefon"
+              value={formData.telefon}
+              onChange={handleFormChange}
+              required
+            />
+
+            {/* Teilnehmerzahl */}
+            <TextField
+              fullWidth
+              label="Teilnehmerzahl"
+              name="teilnehmerzahl"
+              type="number"
+              value={formData.teilnehmerzahl}
+              onChange={handleFormChange}
+            />
+
+            {/* Datum Start */}
+            <TextField
+              fullWidth
+              label="Startdatum *"
+              name="datum_start"
+              type="date"
+              value={formData.datum_start}
+              onChange={handleFormChange}
+              InputLabelProps={{ shrink: true }}
+              required
+            />
+
+            {/* Datum Ende */}
+            <TextField
+              fullWidth
+              label="Enddatum"
+              name="datum_ende"
+              type="date"
+              value={formData.datum_ende}
+              onChange={handleFormChange}
+              InputLabelProps={{ shrink: true }}
+            />
+
+            {/* Startzeit */}
+            <TextField
+              fullWidth
+              label="Startzeit"
+              name="startzeit"
+              type="time"
+              value={formData.startzeit}
+              onChange={handleFormChange}
+              InputLabelProps={{ shrink: true }}
+            />
+
+            {/* Endzeit */}
+            <TextField
+              fullWidth
+              label="Endzeit"
+              name="endzeit"
+              type="time"
+              value={formData.endzeit}
+              onChange={handleFormChange}
+              InputLabelProps={{ shrink: true }}
+            />
+
+            {/* Kategorie */}
             <FormControl fullWidth>
               <InputLabel>Kategorie</InputLabel>
               <Select
+                name="kategorie"
                 value={formData.kategorie}
-                onChange={(e) =>
-                  setFormData({ ...formData, kategorie: e.target.value })
-                }
+                onChange={handleFormChange}
                 label="Kategorie"
               >
-                <MenuItem value="termin">Termin (T)</MenuItem>
-                <MenuItem value="fest">Festgelegt (FT)</MenuItem>
+                <MenuItem value="termin">Termin</MenuItem>
+                <MenuItem value="fest">Festgelegt</MenuItem>
+                <MenuItem value="intern">Intern</MenuItem>
+                <MenuItem value="extern">Extern</MenuItem>
               </Select>
             </FormControl>
 
+            {/* Wiederholung */}
             <FormControl fullWidth>
               <InputLabel>Wiederholung</InputLabel>
               <Select
+                name="wiederholung"
                 value={formData.wiederholung}
-                onChange={(e) =>
-                  setFormData({ ...formData, wiederholung: e.target.value })
-                }
+                onChange={handleFormChange}
                 label="Wiederholung"
               >
                 <MenuItem value="keine">Keine</MenuItem>
@@ -902,211 +679,63 @@ END:VEVENT
               </Select>
             </FormControl>
 
+            {/* Wiederholung bis */}
             {formData.wiederholung !== "keine" && (
               <TextField
                 fullWidth
                 label="Wiederholung bis"
+                name="wiederholung_bis"
                 type="date"
                 value={formData.wiederholung_bis}
-                onChange={(e) =>
-                  setFormData({ ...formData, wiederholung_bis: e.target.value })
-                }
+                onChange={handleFormChange}
                 InputLabelProps={{ shrink: true }}
               />
             )}
 
+            {/* Beschreibung */}
             <TextField
               fullWidth
               label="Beschreibung"
+              name="beschreibung"
               value={formData.beschreibung}
-              onChange={(e) =>
-                setFormData({ ...formData, beschreibung: e.target.value })
-              }
+              onChange={handleFormChange}
               multiline
               rows={3}
             />
           </Stack>
         </DialogContent>
         <DialogActions>
-          {editingEntry && (
-            <Button onClick={() => handleDeleteEntry(editingEntry)} color="error">
-              Löschen
-            </Button>
-          )}
-          <Button onClick={() => setDialogOpen(false)}>Abbrechen</Button>
-          <Button onClick={handleSaveEntry} variant="contained">
-            Speichern
+          <Button onClick={() => {
+            setNewTerminDialogOpen(false);
+            setEditDialogOpen(false);
+          }}>Abbrechen</Button>
+          <Button variant="contained" onClick={handleSaveTermin}>
+            {editingId ? "Aktualisieren" : "Erstellen"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Bestätigungsdialog */}
-      <Dialog
-        open={confirmDialogOpen}
-        onClose={() => setConfirmDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Warning color="warning" />
-            <Typography variant="h6" fontWeight="bold">
-              Bestätigung erforderlich
-            </Typography>
-          </Stack>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Warning color="error" />
+          Termin löschen?
         </DialogTitle>
         <DialogContent>
-          <Typography>{confirmAction?.message}</Typography>
+          <Typography>
+            Möchten Sie den Termin "{deleteTarget?.titel}" wirklich löschen?
+          </Typography>
+          <Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1 }}>
+            Diese Aktion kann nicht rückgängig gemacht werden.
+          </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmDialogOpen(false)}>Abbrechen</Button>
-          <Button
-            onClick={() => confirmAction?.onConfirm()}
-            variant="contained"
-            color="warning"
-          >
-            Bestätigen
+          <Button onClick={() => setDeleteConfirmOpen(false)}>Abbrechen</Button>
+          <Button variant="contained" color="error" onClick={confirmDelete}>
+            Löschen
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Dialog für Raum-Details */}
-      <Dialog
-        open={roomDetailsOpen}
-        onClose={() => setRoomDetailsOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <div>
-              {selectedRoomDetails?.name}
-              <Typography variant="caption" display="block" color="text.secondary">
-                Kapazität: {selectedRoomDetails?.kapazitaet} Personen
-              </Typography>
-              {selectedRoomDetails?.beschreibung && (
-                <Typography variant="body2" color="text.secondary">
-                  {selectedRoomDetails.beschreibung}
-                </Typography>
-              )}
-            </div>
-          </Stack>
-        </DialogTitle>
-        <DialogContent>
-          {selectedRoomDetails &&
-            (() => {
-              const bookings = getBookingsForRoom(selectedRoomDetails.id);
-              const sortedBookings = [...bookings].sort(
-                (a, b) => new Date(a.datum_start) - new Date(b.datum_start)
-              );
-
-              if (sortedBookings.length === 0) {
-                return (
-                  <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-                    Keine Buchungen in diesem Monat
-                  </Typography>
-                );
-              }
-
-              return (
-                <Stack spacing={2} sx={{ mt: 2 }}>
-                  {sortedBookings.map((booking) => {
-                    const color = getBookingColor(booking);
-                    const label = getBookingLabel(booking);
-                    const isMultiDay =
-                      booking.datum_ende && booking.datum_ende !== booking.datum_start;
-
-                    return (
-                      <Paper
-                        key={booking.id}
-                        sx={{
-                          p: 2,
-                          border: `2px solid ${color}`,
-                          borderRadius: 2,
-                          cursor: "pointer",
-                          "&:hover": {
-                            boxShadow: 2,
-                          },
-                        }}
-                        onClick={() => {
-                          setRoomDetailsOpen(false);
-                          handleEditEntry(booking);
-                        }}
-                      >
-                        <Stack direction="row" spacing={2} alignItems="flex-start">
-                          <Box
-                            sx={{
-                              width: 60,
-                              height: 60,
-                              backgroundColor: color,
-                              color: "white",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              borderRadius: 2,
-                              fontWeight: "bold",
-                              fontSize: "1.5rem",
-                            }}
-                          >
-                            {label}
-                          </Box>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="h6" gutterBottom>
-                              {booking.titel}
-                            </Typography>
-                            <Stack
-                              direction="row"
-                              spacing={1}
-                              flexWrap="wrap"
-                              sx={{ mb: 1 }}
-                            >
-                              <Chip
-                                label={
-                                  isMultiDay
-                                    ? `${booking.datum_start} bis ${booking.datum_ende}`
-                                    : booking.datum_start
-                                }
-                                size="small"
-                                color="primary"
-                                variant="outlined"
-                              />
-                              <Chip
-                                label={`${booking.startzeit} - ${booking.endzeit}`}
-                                size="small"
-                                variant="outlined"
-                              />
-                              {booking.teilnehmerzahl && (
-                                <Chip
-                                  label={`${booking.teilnehmerzahl} Personen`}
-                                  size="small"
-                                />
-                              )}
-                            </Stack>
-                            <Typography variant="body2" color="text.secondary">
-                              Kontakt: {booking.kontaktperson} ({booking.telefon})
-                            </Typography>
-                            {booking.beschreibung && (
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                sx={{ mt: 1 }}
-                              >
-                                {booking.beschreibung}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Stack>
-                      </Paper>
-                    );
-                  })}
-                </Stack>
-              );
-            })()}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRoomDetailsOpen(false)}>Schließen</Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+    </Container>
   );
 }

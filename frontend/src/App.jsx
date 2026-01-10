@@ -171,8 +171,11 @@ function NavBar() {
                   <Button color="inherit" component={Link} to="/privacy-info">
                     🔒 Datenschutz
                   </Button>
-                  <Button color="inherit" component={Link} to="/kalender">
-                    📅 Kalender
+                  <Button color="inherit" component={Link} to="/gemeindetermine">
+                    🏛️ Gemeindetermine
+                  </Button>
+                  <Button color="inherit" component={Link} to="/raumbelegungsplan">
+                    🏢 Raumbelegungsplan
                   </Button>
                   <Button
                     color="inherit"
