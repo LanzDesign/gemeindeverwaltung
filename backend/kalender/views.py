@@ -74,16 +74,41 @@ class MitarbeitereintraginViewSet(viewsets.ModelViewSet):
 
 
 class RaumbelegungViewSet(viewsets.ModelViewSet):
-    """ViewSet für Raumbelegungen"""
+    """ViewSet für Raumbelegungen mit Überschneidungsprüfung"""
     queryset = Raumbelegung.objects.all()
     serializer_class = RaumbelegungSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
+        """Erstelle neue Raumbelegung mit Überschneidungsprüfung"""
+        raumbelegung = serializer.save(erstellt_von=self.request.user)
+        
+        # Prüfe auf Überschneidungen nach dem Speichern
+        # (da wir die ManyToMany Räume brauchen)
+        raum_ids = self.request.data.get('raum', [])
+        if raum_ids:
+            ergebnis = raumbelegung.ueberschneidung_pruefung(raum_ids)
+            if not ergebnis['ok']:
+                # Lösche die Buchung wieder und gebe Fehler zurück
+                raumbelegung.delete()
+                raise serializers.ValidationError({
+                    'ueberschneidung': 'Es gibt zeitliche Überschneidungen',
+                    'konflikte': ergebnis['konflikte']
+                })
+    
+    def perform_update(self, serializer):
+        """Update Raumbelegung mit Überschneidungsprüfung"""
+        raumbelegung = serializer.save()
+        
         # Prüfe auf Überschneidungen
-        if not serializer.instance.ueberschneidung_pruefung():
-            raise serializers.ValidationError("Es gibt eine zeitliche Überschneidung mit einer anderen Buchung.")
-        serializer.save(erstellt_von=self.request.user)
+        raum_ids = self.request.data.get('raum', [])
+        if raum_ids:
+            ergebnis = raumbelegung.ueberschneidung_pruefung(raum_ids)
+            if not ergebnis['ok']:
+                raise serializers.ValidationError({
+                    'ueberschneidung': 'Es gibt zeitliche Überschneidungen',
+                    'konflikte': ergebnis['konflikte']
+                })
 
 
 class RaumViewSet(viewsets.ModelViewSet):

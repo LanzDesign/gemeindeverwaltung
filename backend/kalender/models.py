@@ -234,10 +234,10 @@ class Raumbelegung(models.Model):
         ('fest', 'Festgelegt'),
     ]
     
-    raum = models.ForeignKey(Raum, on_delete=models.CASCADE, related_name='belegungen')
+    raum = models.ManyToManyField(Raum, related_name='belegungen', help_text='Räume für diese Buchung')
     titel = models.CharField(max_length=200)
-    kontaktperson = models.CharField(max_length=200, blank=True, default='', help_text='Name der Kontaktperson')
-    telefon = models.CharField(max_length=20, blank=True, default='')
+    kontaktperson = models.CharField(max_length=200, help_text='Name der Kontaktperson (Pflichtfeld)')
+    telefon = models.CharField(max_length=20, help_text='Telefonnummer (Pflichtfeld)')
     teilnehmerzahl = models.IntegerField(null=True, blank=True, help_text='Anzahl der Teilnehmer')
     
     datum_start = models.DateField()
@@ -263,24 +263,71 @@ class Raumbelegung(models.Model):
     erstellt_von = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     class Meta:
-        ordering = ['-datum_start', 'raum', 'startzeit']
+        ordering = ['-datum_start', 'startzeit']
         verbose_name = "Raumbelegung"
         verbose_name_plural = "Raumbelegungen"
 
     def __str__(self):
-        return f"{self.raum.name} - {self.titel} ({self.datum_start})"
+        raum_namen = ", ".join([r.name for r in self.raum.all()]) if self.raum.exists() else "Kein Raum"
+        return f"{raum_namen} - {self.titel} ({self.datum_start})"
 
-    def ueberschneidung_pruefung(self):
-        """Prüft auf zeitliche Überschneidungen mit anderen Buchungen im selben Raum"""
-        # Prüfe alle Buchungen im gleichen Raum
-        buchungen = Raumbelegung.objects.filter(raum=self.raum).exclude(pk=self.pk)
+    def get_farbe_by_kategorie(self):
+        """Gibt die Farbe basierend auf der Kategorie zurück"""
+        farben = {
+            'termin': '#2563eb',  # Blau (T)
+            'fest': '#9333ea',    # Lila/Purple (FT - Festgelegt)
+        }
+        return farben.get(self.kategorie, '#2563eb')
+
+    def ueberschneidung_pruefung(self, raeume=None):
+        """
+        Prüft auf zeitliche Überschneidungen mit anderen Buchungen
+        Args:
+            raeume: Liste von Raum-IDs zum Prüfen (optional)
+        Returns:
+            dict mit 'ok' (bool) und 'konflikte' (list)
+        """
+        if raeume is None:
+            raeume = list(self.raum.all().values_list('id', flat=True))
         
-        for buchung in buchungen:
-            # Prüfe ob Datumsbereich überschneidet
-            if not (self.datum_ende or self.datum_start) < buchung.datum_start or \
-               not (buchung.datum_ende or buchung.datum_start) < self.datum_start:
-                # Datumsbereich überlappt - prüfe Zeiten
-                if not (self.endzeit <= buchung.startzeit or self.startzeit >= buchung.endzeit):
-                    return False
-        return True
+        konflikte = []
+        
+        for raum_id in raeume:
+            # Prüfe alle Buchungen im gleichen Raum
+            buchungen = Raumbelegung.objects.filter(
+                raum__id=raum_id
+            ).exclude(pk=self.pk if self.pk else None)
+            
+            for buchung in buchungen:
+                # Bestimme Datumsbereich für diese Buchung
+                start_datum = self.datum_start
+                end_datum = self.datum_ende if self.datum_ende else self.datum_start
+                
+                buchung_start = buchung.datum_start
+                buchung_ende = buchung.datum_ende if buchung.datum_ende else buchung.datum_start
+                
+                # Prüfe ob Datumsbereiche überschneiden
+                datum_ueberschneidung = not (end_datum < buchung_start or start_datum > buchung_ende)
+                
+                if datum_ueberschneidung:
+                    # Prüfe Zeitüberschneidung
+                    zeit_ueberschneidung = not (
+                        self.endzeit <= buchung.startzeit or 
+                        self.startzeit >= buchung.endzeit
+                    )
+                    
+                    if zeit_ueberschneidung:
+                        from .models import Raum
+                        raum_obj = Raum.objects.get(id=raum_id)
+                        konflikte.append({
+                            'raum': raum_obj.name,
+                            'titel': buchung.titel,
+                            'datum': str(buchung.datum_start),
+                            'zeit': f"{buchung.startzeit} - {buchung.endzeit}"
+                        })
+        
+        return {
+            'ok': len(konflikte) == 0,
+            'konflikte': konflikte
+        }
 

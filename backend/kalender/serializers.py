@@ -47,18 +47,61 @@ class MitarbeitereintraginSerializer(serializers.ModelSerializer):
 
 
 class RaumbelegungSerializer(serializers.ModelSerializer):
-    raum_name = serializers.CharField(source='raum.name', read_only=True)
+    raum_namen = serializers.SerializerMethodField()
     ueberschneidung_ok = serializers.SerializerMethodField()
+    farbe_kategorie = serializers.SerializerMethodField()
     
     class Meta:
         model = Raumbelegung
-        fields = ['id', 'raum', 'raum_name', 'titel', 'kontaktperson', 'telefon', 'teilnehmerzahl',
+        fields = ['id', 'raum', 'raum_namen', 'titel', 'kontaktperson', 'telefon', 'teilnehmerzahl',
                   'datum_start', 'datum_ende', 'startzeit', 'endzeit', 'kategorie', 'wiederholung', 
-                  'wiederholung_bis', 'beschreibung', 'farbe', 'ueberschneidung_ok', 'erstellt_am', 'aktualisiert_am']
+                  'wiederholung_bis', 'beschreibung', 'farbe', 'farbe_kategorie', 'ueberschneidung_ok', 
+                  'erstellt_am', 'aktualisiert_am']
         read_only_fields = ['erstellt_am', 'aktualisiert_am']
     
+    def get_raum_namen(self, obj):
+        """Gibt die Namen aller gebuchten Räume zurück"""
+        return [raum.name for raum in obj.raum.all()]
+    
     def get_ueberschneidung_ok(self, obj):
-        return obj.ueberschneidung_pruefung()
+        """Prüft auf Überschneidungen"""
+        result = obj.ueberschneidung_pruefung()
+        return result
+    
+    def get_farbe_kategorie(self, obj):
+        """Gibt die Farbe basierend auf Kategorie/Wiederholung zurück"""
+        if obj.wiederholung != 'keine':
+            return '#eab308'  # Gelb für wiederholende Termine (W)
+        return obj.get_farbe_by_kategorie()
+    
+    def validate(self, data):
+        """Validiere Pflichtfelder und logische Konsistenz"""
+        # Pflichtfelder prüfen
+        if not data.get('kontaktperson'):
+            raise serializers.ValidationError({
+                'kontaktperson': 'Name der Kontaktperson ist ein Pflichtfeld'
+            })
+        
+        if not data.get('telefon'):
+            raise serializers.ValidationError({
+                'telefon': 'Telefonnummer ist ein Pflichtfeld'
+            })
+        
+        # Zeitlogik prüfen
+        if data.get('startzeit') and data.get('endzeit'):
+            if data['startzeit'] >= data['endzeit']:
+                raise serializers.ValidationError({
+                    'endzeit': 'Endzeit muss nach der Startzeit liegen'
+                })
+        
+        # Datumslogik prüfen
+        if data.get('datum_ende') and data.get('datum_start'):
+            if data['datum_ende'] < data['datum_start']:
+                raise serializers.ValidationError({
+                    'datum_ende': 'Enddatum muss nach dem Startdatum liegen'
+                })
+        
+        return data
 
 
 class RaumSerializer(serializers.ModelSerializer):
