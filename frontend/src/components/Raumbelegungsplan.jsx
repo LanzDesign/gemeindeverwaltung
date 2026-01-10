@@ -187,7 +187,7 @@ export default function RaumbelegungsplanExcel() {
       }
     });
     
-    // Filtere nur die Termine, die in displayDates liegen
+    // Filtere nur die Termine, die in displayDates liegen und füge datum-Property hinzu
     return expandedBookings.filter((b) => {
       const bStart = b.datum_start;
       const bEnd = b.datum_ende || b.datum_start;
@@ -195,7 +195,10 @@ export default function RaumbelegungsplanExcel() {
         const ds = date.toISOString().slice(0, 10);
         return ds >= bStart && ds <= bEnd;
       });
-    });
+    }).map((b) => ({
+      ...b,
+      datum: b.datum_start  // Füge datum-Property für Wochen-/Monatsansicht hinzu
+    }));
   }, [buchungen, displayDates]);
 
   const bookingsForDay = useMemo(() => {
