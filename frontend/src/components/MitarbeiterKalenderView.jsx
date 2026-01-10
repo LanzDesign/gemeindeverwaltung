@@ -256,7 +256,54 @@ export default function MitarbeiterKalenderView() {
     const jahr = currentDate.getFullYear();
     const workbook = XLSX.utils.book_new();
 
-    // Für jeden Monat ein Sheet erstellen
+    // 1. ZUSAMMENFASSUNG SHEET ERSTELLEN
+    const summaryData = [
+      ["JAHRESÜBERSICHT", jahr],
+      [],
+      ["Mitarbeiter", "Urlaubstage", "Krankheitstage"],
+    ];
+
+    // Sortiere Mitarbeiter alphabetisch
+    const sortedMitarbeiter = [...mitarbeiter].sort((a, b) => {
+      return a.vollstaendiger_name.localeCompare(b.vollstaendiger_name);
+    });
+
+    // Berechne für jeden Mitarbeiter
+    sortedMitarbeiter.forEach((ma) => {
+      const maMitarbeiterEintraege = eintraege.filter((e) => e.mitarbeiter === ma.id);
+
+      // Zähle Urlaubstage
+      const urlaubEintraege = maMitarbeiterEintraege.filter((e) => e.typ === "urlaub");
+      let urlaubTage = 0;
+      urlaubEintraege.forEach((e) => {
+        // Nutze dauer_tage (excludes weekends und holidays)
+        urlaubTage += e.dauer_tage || 0;
+      });
+
+      // Zähle Krankheitstage
+      const krankheitEintraege = maMitarbeiterEintraege.filter((e) => e.typ === "krankheit");
+      let krankheitTage = 0;
+      krankheitEintraege.forEach((e) => {
+        krankheitTage += e.dauer_tage || 0;
+      });
+
+      summaryData.push([
+        ma.vollstaendiger_name,
+        urlaubTage,
+        krankheitTage,
+      ]);
+    });
+
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+    // Setze Spaltenbreiten
+    summarySheet["!cols"] = [
+      { wch: 25 },  // Mitarbeiter
+      { wch: 15 },  // Urlaubstage
+      { wch: 15 },  // Krankheitstage
+    ];
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "Zusammenfassung", 0);
+
+    // 2. FÜR JEDEN MONAT EIN SHEET ERSTELLEN
     for (let monat = 1; monat <= 12; monat++) {
       const monthName = MONTH_NAMES[monat - 1];
       const sheetName = `${monthName} ${jahr}`;
@@ -293,7 +340,7 @@ export default function MitarbeiterKalenderView() {
       ];
 
       // Für jeden Mitarbeiter eine Zeile
-      mitarbeiter.forEach((ma) => {
+      sortedMitarbeiter.forEach((ma) => {
         const row = [ma.vollstaendiger_name];
         
         daysInThisMonth.forEach((dayInfo) => {
