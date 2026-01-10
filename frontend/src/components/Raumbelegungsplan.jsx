@@ -79,9 +79,9 @@ export default function RaumbelegungsplanExcel() {
       const jahr = currentDate.getFullYear();
       const monat = currentDate.getMonth() + 1;
       const [raumRes, buchRes, feiertageRes] = await Promise.all([
-        axiosInstance.get("/kalender/raeume/"),
-        axiosInstance.get("/kalender/raumbelegungen/"),
-        axiosInstance.get(`/kalender/feiertage/?jahr=${jahr}&monat=${monat}`),
+        axiosInstance.get("/raeume/"),
+        axiosInstance.get("/raumbelegungen/"),
+        axiosInstance.get(`/feiertage/?jahr=${jahr}&monat=${monat}`),
       ]);
       setRaeume(raumRes.data);
       setBuchungen(buchRes.data);
@@ -227,7 +227,7 @@ export default function RaumbelegungsplanExcel() {
   const handleDelete = async () => {
     if (!editing) return;
     try {
-      await axiosInstance.delete(`/kalender/raumbelegungen/${editing}/`);
+      await axiosInstance.delete(`/raumbelegungen/${id}/`);
       setMessage("Termin gelöscht");
       setDialogOpen(false);
       setEditing(null);
@@ -259,10 +259,10 @@ export default function RaumbelegungsplanExcel() {
     };
     try {
       if (editing) {
-        await axiosInstance.put(`/kalender/raumbelegungen/${editing}/`, payload);
+        await axiosInstance.put(`/raumbelegungen/${editing.id}/`, payload);
         setMessage("Termin aktualisiert");
       } else {
-        await axiosInstance.post("/kalender/raumbelegungen/", payload);
+        await axiosInstance.post("/raumbelegungen/", payload);
         setMessage("Termin erstellt");
       }
       setDialogOpen(false);

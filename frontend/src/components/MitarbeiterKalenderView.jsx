@@ -93,10 +93,10 @@ export default function MitarbeiterKalenderView() {
 
       const [mitarbeiterRes, eintraegeRes, kategorienRes, feiertageRes] =
         await Promise.all([
-          axiosInstance.get("/kalender/mitarbeiter/"),
-          axiosInstance.get("/kalender/mitarbeitertermine/"),
-          axiosInstance.get("/kalender/mitarbeiterkategorien/"),
-          axiosInstance.get(`/kalender/feiertage/?jahr=${jahr}&monat=${monat}`),
+          axiosInstance.get("/mitarbeiter/"),
+          axiosInstance.get("/mitarbeitertermine/"),
+          axiosInstance.get("/mitarbeiterkategorien/"),
+          axiosInstance.get(`/feiertage/?jahr=${jahr}&monat=${monat}`),
         ]);
       setMitarbeiter(mitarbeiterRes.data);
       setEintraege(eintraegeRes.data);
