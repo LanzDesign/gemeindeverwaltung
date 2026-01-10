@@ -1160,7 +1160,12 @@ function AdminDashboard() {
                 control={
                   <MuiCheckbox
                     checked={filterMale}
-                    onChange={(e) => setFilterMale(e.target.checked)}
+                    onChange={(e) => {
+                      setFilterMale(e.target.checked);
+                      if (e.target.checked) {
+                        setFilterShowAll(true);
+                      }
+                    }}
                   />
                 }
                 label="Männlich"
@@ -1173,7 +1178,12 @@ function AdminDashboard() {
                 control={
                   <MuiCheckbox
                     checked={filterFemale}
-                    onChange={(e) => setFilterFemale(e.target.checked)}
+                    onChange={(e) => {
+                      setFilterFemale(e.target.checked);
+                      if (e.target.checked) {
+                        setFilterShowAll(true);
+                      }
+                    }}
                   />
                 }
                 label="Weiblich"
