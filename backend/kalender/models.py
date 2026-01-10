@@ -220,7 +220,7 @@ class Raum(models.Model):
     """Räume für Raumbelegungsplan"""
     name = models.CharField(max_length=100, unique=True)
     beschreibung = models.TextField(blank=True)
-    kapazitaet = models.IntegerField(help_text='Maximale Anzahl Personen')
+    kapazitaet = models.IntegerField(default=20, help_text='Maximale Anzahl Personen')
     aktiv = models.BooleanField(default=True)
     erstellt_am = models.DateTimeField(auto_now_add=True)
     aktualisiert_am = models.DateTimeField(auto_now=True)
