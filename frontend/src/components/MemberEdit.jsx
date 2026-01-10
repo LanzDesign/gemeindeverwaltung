@@ -708,16 +708,23 @@ function MemberEdit() {
             </Grid>
 
             <Grid item xs={12}>
-              <TextField
-                select
-                fullWidth
-                label="Geschlecht"
-                {...register("gender")}
-              >
-                <MenuItem value="">Bitte wählen</MenuItem>
-                <MenuItem value="male">Männlich</MenuItem>
-                <MenuItem value="female">Weiblich</MenuItem>
-              </TextField>
+              <Controller
+                name="gender"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    select
+                    fullWidth
+                    label="Geschlecht"
+                    {...field}
+                    value={field.value || ""}
+                  >
+                    <MenuItem value="">Bitte wählen</MenuItem>
+                    <MenuItem value="male">Männlich</MenuItem>
+                    <MenuItem value="female">Weiblich</MenuItem>
+                  </TextField>
+                )}
+              />
             </Grid>
 
             <Grid item xs={12}>
