@@ -48,8 +48,8 @@ class Mitarbeiter(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='mitarbeiter_profil')
     vorname = models.CharField(max_length=100)
     nachname = models.CharField(max_length=100)
-    urlaubstage_gesamt = models.IntegerField(default=30, help_text='Gesamte Urlaubstage pro Jahr')
-    urlaubstage_genommen = models.IntegerField(default=0, help_text='Bereits genommene Urlaubstage')
+    urlaubstage_gesamt = models.DecimalField(max_digits=5, decimal_places=1, default=30, help_text='Gesamte Urlaubstage pro Jahr')
+    urlaubstage_genommen = models.DecimalField(max_digits=5, decimal_places=1, default=0, help_text='Bereits genommene Urlaubstage')
     aktiv = models.BooleanField(default=True)
     erstellt_am = models.DateTimeField(auto_now_add=True)
     aktualisiert_am = models.DateTimeField(auto_now=True)
@@ -262,8 +262,8 @@ class Raumbelegung(models.Model):
     
     datum_start = models.DateField()
     datum_ende = models.DateField(null=True, blank=True, help_text='Enddatum falls mehrere Tage')
-    startzeit = models.TimeField()
-    endzeit = models.TimeField()
+    startzeit = models.TimeField(null=True, blank=True)
+    endzeit = models.TimeField(null=True, blank=True)
     
     # Neue flexible Kategorie (ForeignKey)
     kategorie_neu = models.ForeignKey(KalenderKategorie, on_delete=models.SET_NULL, null=True, blank=True, related_name='raumbelegungen', verbose_name='Kategorie')
