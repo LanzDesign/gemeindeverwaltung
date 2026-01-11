@@ -33,10 +33,10 @@ def feiertage_view(request):
 
 
 class MitarbeiterViewSet(viewsets.ModelViewSet):
-    """ViewSet für Mitarbeiter"""
+    """ViewSet für Mitarbeiter - nur für Django-Admins"""
     queryset = Mitarbeiter.objects.filter(aktiv=True)
     serializer_class = MitarbeiterSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
 
 class KalenderKategorieViewSet(viewsets.ReadOnlyModelViewSet):
@@ -47,10 +47,10 @@ class KalenderKategorieViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class MitarbeiterKategorieViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet für Mitarbeiter-Kategorien (nur lesen)"""
+    """ViewSet für Mitarbeiter-Kategorien - nur für Django-Admins"""
     queryset = MitarbeiterKategorie.objects.filter(aktiv=True)
     serializer_class = MitarbeiterKategorieSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAdminUser]
 
 
 class GemeindeterminViewSet(viewsets.ModelViewSet):
@@ -69,10 +69,10 @@ class GemeindeterminViewSet(viewsets.ModelViewSet):
 
 
 class MitarbeitereintraginViewSet(viewsets.ModelViewSet):
-    """ViewSet für Mitarbeitereinträge"""
+    """ViewSet für Mitarbeitereinträge - nur für Django-Admins"""
     queryset = Mitarbeitereintrag.objects.all()
     serializer_class = MitarbeitereintraginSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def perform_create(self, serializer):
         serializer.save(erstellt_von=self.request.user)
