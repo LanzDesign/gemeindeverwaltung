@@ -1,6 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import GemeindeterminViewSet, MitarbeitereintraginViewSet, RaumbelegungViewSet, RaumViewSet, KalenderKategorieViewSet, MitarbeiterKategorieViewSet, MitarbeiterViewSet, feiertage_view
+from .views import (
+    GemeindeterminViewSet, MitarbeitereintraginViewSet, RaumbelegungViewSet, 
+    RaumViewSet, KalenderKategorieViewSet, MitarbeiterKategorieViewSet, 
+    MitarbeiterViewSet, feiertage_view, gemeindetermine_ics_export, 
+    jahreskalender_excel_export
+)
 
 router = DefaultRouter()
 router.register(r'mitarbeiter', MitarbeiterViewSet, basename='mitarbeiter')
@@ -13,5 +18,7 @@ router.register(r'raeume', RaumViewSet, basename='raum')
 
 urlpatterns = [
     path('feiertage/', feiertage_view, name='feiertage'),
+    path('gemeindetermine/export/ics/', gemeindetermine_ics_export, name='gemeindetermine-ics-export'),
+    path('kalender/export/excel/', jahreskalender_excel_export, name='jahreskalender-excel-export'),
     path('', include(router.urls)),
 ]
