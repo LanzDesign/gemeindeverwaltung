@@ -147,6 +147,7 @@ class Mitarbeitereintrag(models.Model):
         """Berechnet die Anzahl der Tage (ohne Feiertage)"""
         from .services import FeiertagService
         from datetime import timedelta
+        from decimal import Decimal
         
         if self.datum_ende and self.datum_ende != self.datum_start:
             # Zähle Arbeitstage (ohne Wochenenden und Feiertage)
@@ -170,9 +171,9 @@ class Mitarbeitereintrag(models.Model):
             print(f"[Urlaubsberechnung] Ergebnis: {tage_count} Arbeitstage, Halbtags: {self.halbtags}")
             
             if self.halbtags:
-                return tage_count * 0.5
-            return tage_count
-        return 0.5 if self.halbtags else 1
+                return Decimal(str(tage_count * 0.5))
+            return Decimal(str(tage_count))
+        return Decimal('0.5') if self.halbtags else Decimal('1')
 
 
     def save(self, *args, **kwargs):
