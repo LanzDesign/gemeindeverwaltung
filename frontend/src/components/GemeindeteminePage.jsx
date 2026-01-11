@@ -21,7 +21,7 @@ export default function GemeindeteminePage() {
 
   const handleICSExport = () => {
     const currentYear = new Date().getFullYear();
-    const url = `${API_BASE_URL}/api/kalender/gemeindetermine/export/ics/?jahr=${currentYear}`;
+    const url = `${API_BASE_URL}/api/gemeindetermine/export/ics/?jahr=${currentYear}`;
     window.open(url, "_blank");
   };
 
