@@ -355,7 +355,7 @@ def raumbelegungen_ics_export(request):
             f'DTSTART:{dtstart.strftime("%Y%m%dT%H%M%S")}',
             f'DTEND:{dtend.strftime("%Y%m%dT%H%M%S")}',
             f'SUMMARY:{summary}',
-            f'DESCRIPTION:{' \n'.join(descr_parts)}',
+            f"DESCRIPTION:{'\\n'.join(descr_parts)}",
             f'CATEGORIES:{kat_name}',
             'END:VEVENT'
         ])
