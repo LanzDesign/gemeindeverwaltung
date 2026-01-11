@@ -57,6 +57,7 @@ export default function RaumbelegungsplanView() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [raeume, setRaeume] = useState([]);
   const [belegungen, setBelegungen] = useState([]);
+  const [kategorien, setKategorien] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBelegung, setEditingBelegung] = useState(null);
   const [selectedRaum, setSelectedRaum] = useState("");
@@ -72,7 +73,7 @@ export default function RaumbelegungsplanView() {
     datum_ende: "",
     startzeit: "08:00",
     endzeit: "17:00",
-    kategorie: "termin",
+    kategorie_neu: null,
     wiederholung: "keine",
     wiederholung_bis: "",
     beschreibung: "",
@@ -84,12 +85,14 @@ export default function RaumbelegungsplanView() {
 
   const loadData = async () => {
     try {
-      const [raeumeRes, belegumengenRes] = await Promise.all([
+      const [raeumeRes, belegumengenRes, kategorienRes] = await Promise.all([
         axiosInstance.get("/raeume/"),
         axiosInstance.get("/raumbelegungen/"),
+        axiosInstance.get("/kalender-kategorien/"),
       ]);
       setRaeume(raeumeRes.data);
       setBelegungen(belegumengenRes.data);
+      setKategorien(kategorienRes.data.filter(k => k.aktiv));
     } catch (error) {
       console.error("Fehler beim Laden:", error);
     }
@@ -160,7 +163,7 @@ export default function RaumbelegungsplanView() {
       teilnehmerzahl: "",
       datum_start: formatDateKey(day),
       datum_ende: "",
-      startzeit: "08:00",
+      startzeit_neu: kategorien.length > 0 ? kategorien[0].id : null
       endzeit: "17:00",
       kategorie: "termin",
       wiederholung: "keine",
@@ -218,9 +221,31 @@ export default function RaumbelegungsplanView() {
     MONTH_NAMES[currentDate.getMonth()]
   } ${currentDate.getFullYear()}`;
 
-  return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h4" sx={{ mb: 2 }}>
+  returStack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h4">
+          Raumbelegungsplan
+        </Typography>
+        {/* Legende */}
+        {kategorien.length > 0 && (
+          <Stack direction="row" spacing={2} flexWrap="wrap">
+            {kategorien.map((kat) => (
+              <Box key={kat.id} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Box
+                  sx={{
+                    width: 16,
+                    height: 16,
+                    bgcolor: kat.farbe,
+                    borderRadius: "50%",
+                  }}
+                />
+                <Typography variant="body2">
+                  {kat.abkuerzung || kat.bezeichnung}
+                </Typography>
+              </Box>
+            ))}
+          </Stack>
+        )}
+      </Stackvariant="h4" sx={{ mb: 2 }}>
         Raumbelegungsplan
       </Typography>
 
@@ -325,48 +350,53 @@ export default function RaumbelegungsplanView() {
                                   {dayNum}
                                 </Typography>
                                 <Box sx={{ mt: 0.5 }}>
-                                  {dayBelegungen.map((b) => (
-                                    <Card
-                                      key={b.id}
-                                      sx={{
-                                        mb: 0.5,
-                                        backgroundColor: b.farbe,
-                                        p: 0.5,
-                                        cursor: "pointer",
-                                      }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingBelegung(b);
-                                        setFormData(b);
-                                        setSelectedRaum(raum);
-                                        setDialogOpen(true);
-                                      }}
-                                    >
-                                      <CardContent sx={{ p: 0.5 }}>
-                                        <Typography
-                                          variant="caption"
-                                          sx={{
-                                            color: "white",
-                                            fontWeight: "bold",
-                                            display: "block",
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                          }}
-                                        >
-                                          {b.titel}
-                                        </Typography>
-                                        <Typography
-                                          variant="caption"
-                                          sx={{
-                                            color: "white",
-                                            fontSize: "0.7rem",
-                                          }}
-                                        >
-                                          {b.startzeit}
-                                        </Typography>
-                                      </CardContent>
-                                    </Card>
-                                  ))}
+                                  {dayBelegungen.map((b) => {
+                                    const kategorie = kategorien.find(k => k.id === b.kategorie_neu);
+                                    const farbe = kategorie ? kategorie.farbe : (b.farbe || "#2563eb");
+                                    
+                                    return (
+                                      <Card
+                                        key={b.id}
+                                        sx={{
+                                          mb: 0.5,
+                                          backgroundColor: farbe,
+                                          p: 0.5,
+                                          cursor: "pointer",
+                                        }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingBelegung(b);
+                                          setFormData(b);
+                                          setSelectedRaum(raum);
+                                          setDialogOpen(true);
+                                        }}
+                                      >
+                                        <CardContent sx={{ p: 0.5 }}>
+                                          <Typography
+                                            variant="caption"
+                                            sx={{
+                                              color: "white",
+                                              fontWeight: "bold",
+                                              display: "block",
+                                              overflow: "hidden",
+                                              textOverflow: "ellipsis",
+                                            }}
+                                          >
+                                            {b.titel}
+                                          </Typography>
+                                          <Typography
+                                            variant="caption"
+                                            sx={{
+                                              color: "white",
+                                              fontSize: "0.7rem",
+                                            }}
+                                          >
+                                            {b.startzeit}
+                                          </Typography>
+                                        </CardContent>
+                                      </Card>
+                                    );
+                                  })}
                                 </Box>
                               </>
                             )}
@@ -497,15 +527,26 @@ export default function RaumbelegungsplanView() {
           <TextField
             label="Kategorie"
             fullWidth
-            margin="normal"
-            select
-            value={formData.kategorie}
+            margin="normal"_neu || ""}
             onChange={(e) =>
-              setFormData({ ...formData, kategorie: e.target.value })
+              setFormData({ ...formData, kategorie_neu: e.target.value })
             }
           >
-            <MenuItem value="intern">Intern</MenuItem>
-            <MenuItem value="extern">Extern</MenuItem>
+            {kategorien.map((kat) => (
+              <MenuItem key={kat.id} value={kat.id}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Box
+                    sx={{
+                      width: 16,
+                      height: 16,
+                      bgcolor: kat.farbe,
+                      borderRadius: "50%",
+                    }}
+                  />
+                  {kat.bezeichnung}
+                </Box>
+              </MenuItem>
+            ))}
             <MenuItem value="termin">Termin</MenuItem>
             <MenuItem value="fest">Festgelegt</MenuItem>
           </TextField>
