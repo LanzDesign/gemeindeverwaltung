@@ -4,7 +4,8 @@ from .views import (
     GemeindeterminViewSet, MitarbeitereintraginViewSet, RaumbelegungViewSet, 
     RaumViewSet, KalenderKategorieViewSet, MitarbeiterKategorieViewSet, 
     MitarbeiterViewSet, feiertage_view, gemeindetermine_ics_export, 
-    jahreskalender_excel_export
+    jahreskalender_excel_export, mitarbeiter_ics_export, mitarbeiter_excel_export,
+    raumbelegungen_ics_export, raumbelegungen_excel_export
 )
 
 router = DefaultRouter()
@@ -20,5 +21,9 @@ urlpatterns = [
     path('feiertage/', feiertage_view, name='feiertage'),
     path('gemeindetermine/export/ics/', gemeindetermine_ics_export, name='gemeindetermine-ics-export'),
     path('kalender/export/excel/', jahreskalender_excel_export, name='jahreskalender-excel-export'),
+    path('mitarbeiter/export/ics/', mitarbeiter_ics_export, name='mitarbeiter-ics-export'),
+    path('mitarbeiter/export/excel/', mitarbeiter_excel_export, name='mitarbeiter-excel-export'),
+    path('raeume/export/ics/', raumbelegungen_ics_export, name='raeume-ics-export'),
+    path('raeume/export/excel/', raumbelegungen_excel_export, name='raeume-excel-export'),
     path('', include(router.urls)),
 ]

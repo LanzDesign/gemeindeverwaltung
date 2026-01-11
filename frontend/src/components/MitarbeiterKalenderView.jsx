@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Box,
   Paper,
@@ -64,7 +64,7 @@ export default function MitarbeiterKalenderView() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [selectedMitarbeiter, setSelectedMitarbeiter] = useState("");
-  const [selectedDate, setSelectedDate] = useState("");
+  // removed unused selectedDate
   const [mitarbeiterDetailsOpen, setMitarbeiterDetailsOpen] = useState(false);
   const [selectedMitarbeiterDetails, setSelectedMitarbeiterDetails] =
     useState(null);
@@ -82,11 +82,7 @@ export default function MitarbeiterKalenderView() {
     kategorie: null,
   });
 
-  useEffect(() => {
-    loadData();
-  }, [currentDate]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const jahr = currentDate.getFullYear();
       const monat = currentDate.getMonth() + 1;
@@ -105,7 +101,14 @@ export default function MitarbeiterKalenderView() {
     } catch (error) {
       console.error("Fehler beim Laden:", error);
     }
-  };
+  }, [currentDate]);
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      loadData();
+    }, 0);
+    return () => clearTimeout(id);
+  }, [loadData]);
 
   // Berechne Tage im Monat
   const daysInMonth = useMemo(() => {
@@ -172,7 +175,6 @@ export default function MitarbeiterKalenderView() {
 
   const handleCellClick = (mitarbeiterId, dateString) => {
     setSelectedMitarbeiter(mitarbeiterId);
-    setSelectedDate(dateString);
     setFormData({
       ...formData,
       datum_start: dateString,
@@ -245,6 +247,20 @@ export default function MitarbeiterKalenderView() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleExportICS = () => {
+    const jahr = currentDate.getFullYear();
+    const monat = String(currentDate.getMonth() + 1);
+    const url = `/mitarbeiter/export/ics/?jahr=${jahr}&monat=${monat}`;
+    // Öffne direkten Download vom Backend
+    window.open(url, "_blank");
+  };
+
+  const handleBackendExcel = () => {
+    const jahr = currentDate.getFullYear();
+    const url = `/mitarbeiter/export/excel/?jahr=${jahr}`;
+    window.open(url, "_blank");
   };
 
   const handleExportExcel = () => {
@@ -577,12 +593,28 @@ export default function MitarbeiterKalenderView() {
             Drucken
           </Button>
           <Button
+            onClick={handleExportICS}
+            size="small"
+            variant="outlined"
+            startIcon={<FileDownloadIcon />}
+          >
+            ICS Export
+          </Button>
+          <Button
             onClick={handleExportExcel}
             size="small"
             variant="outlined"
             startIcon={<FileDownloadIcon />}
           >
             Excel Export
+          </Button>
+          <Button
+            onClick={handleBackendExcel}
+            size="small"
+            variant="outlined"
+            startIcon={<FileDownloadIcon />}
+          >
+            Excel (Backend)
           </Button>
         </Stack>
       </Stack>

@@ -202,21 +202,26 @@ function AdminDashboard() {
       try {
         const response = await axiosInstance.get("/members/");
         const members = response.data;
-        
+
         // Debug: Gender-Werte ausgeben
         console.log("=== GENDER DEBUG ===");
-        console.log("Erste 10 Members mit Gender:", 
-          members.slice(0, 10).map(m => ({ 
-            name: `${m.first_name} ${m.last_name}`, 
+        console.log(
+          "Erste 10 Members mit Gender:",
+          members.slice(0, 10).map((m) => ({
+            name: `${m.first_name} ${m.last_name}`,
             gender: m.gender,
-            genderType: typeof m.gender
+            genderType: typeof m.gender,
           }))
         );
         const maleCount = members.filter((m) => m.gender === "male").length;
         const femaleCount = members.filter((m) => m.gender === "female").length;
-        const emptyGender = members.filter((m) => !m.gender || m.gender === '').length;
-        console.log(`Male: ${maleCount}, Female: ${femaleCount}, Empty: ${emptyGender}`);
-        
+        const emptyGender = members.filter(
+          (m) => !m.gender || m.gender === ""
+        ).length;
+        console.log(
+          `Male: ${maleCount}, Female: ${femaleCount}, Empty: ${emptyGender}`
+        );
+
         setStats({
           total: members.length,
           active: members.filter((m) => m.status === "active").length,
@@ -378,15 +383,17 @@ function AdminDashboard() {
         if (filterNonDonor && m.is_donor) return false;
         if (filterMember && !m.is_member) return false;
         if (filterYouth && !m.is_youth) return false;
-        
+
         // Gender filter
         if (filterMale) {
-          const gender = (m.gender || '').toLowerCase();
-          if (gender !== "male" && gender !== "m" && gender !== "männlich") return false;
+          const gender = (m.gender || "").toLowerCase();
+          if (gender !== "male" && gender !== "m" && gender !== "männlich")
+            return false;
         }
         if (filterFemale) {
-          const gender = (m.gender || '').toLowerCase();
-          if (gender !== "female" && gender !== "f" && gender !== "weiblich") return false;
+          const gender = (m.gender || "").toLowerCase();
+          if (gender !== "female" && gender !== "f" && gender !== "weiblich")
+            return false;
         }
 
         // Filter children:
@@ -697,7 +704,10 @@ function AdminDashboard() {
   }
 
   return (
-    <Container maxWidth={false} sx={{ mt: 4, mb: 4, px: { xs: 0.5, sm: 1, md: 2 } }}>
+    <Container
+      maxWidth={false}
+      sx={{ mt: 4, mb: 4, px: { xs: 0.5, sm: 1, md: 2 } }}
+    >
       <Box
         sx={{
           background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",

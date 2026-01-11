@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Paper,
@@ -11,8 +11,6 @@ import {
   TableHead,
   TableRow,
   Stack,
-  useTheme,
-  useMediaQuery,
   Tooltip,
   Dialog,
   DialogTitle,
@@ -25,6 +23,7 @@ import {
   Checkbox,
   Card,
   CardContent,
+  Select,
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -51,9 +50,6 @@ const MONTH_NAMES = [
 const DAY_NAMES_MONDAY_START = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
 export default function RaumbelegungsplanView() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-
   const [currentDate, setCurrentDate] = useState(new Date());
   const [raeume, setRaeume] = useState([]);
   const [belegungen, setBelegungen] = useState([]);
@@ -64,9 +60,11 @@ export default function RaumbelegungsplanView() {
   const [selectedDate, setSelectedDate] = useState("");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [actionDialogOpen, setActionDialogOpen] = useState(false);
+  const [dayViewOpen, setDayViewOpen] = useState(false);
 
   const [formData, setFormData] = useState({
-    raum: "",
+    raum: [],
     titel: "",
     kontaktperson: "",
     telefon: "",
@@ -81,10 +79,6 @@ export default function RaumbelegungsplanView() {
     beschreibung: "",
   });
 
-  useEffect(() => {
-    loadData();
-  }, [currentDate]);
-
   const loadData = async () => {
     try {
       const [raeumeRes, belegumengenRes, kategorienRes] = await Promise.all([
@@ -94,11 +88,18 @@ export default function RaumbelegungsplanView() {
       ]);
       setRaeume(raeumeRes.data);
       setBelegungen(belegumengenRes.data);
-      setKategorien(kategorienRes.data.filter(k => k.aktiv));
+      setKategorien(kategorienRes.data.filter((k) => k.aktiv));
     } catch (error) {
       console.error("Fehler beim Laden:", error);
     }
   };
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      loadData();
+    }, 0);
+    return () => clearTimeout(id);
+  }, [currentDate]);
 
   const generateCalendarDays = () => {
     const daysInMonth = new Date(
@@ -129,12 +130,15 @@ export default function RaumbelegungsplanView() {
   const getBelegungenForDay = (day, raum) => {
     const dateKey = formatDateKey(day);
     if (!dateKey) return [];
-    return belegungen.filter(
-      (b) =>
-        b.raum === raum.id &&
-        (b.datum_start === dateKey ||
-          (b.datum_ende && dateKey >= b.datum_start && dateKey <= b.datum_ende))
-    );
+    return belegungen.filter((b) => {
+      const matchesRoom = Array.isArray(b.raum)
+        ? b.raum.includes(raum.id)
+        : b.raum === raum.id;
+      const matchesDate =
+        b.datum_start === dateKey ||
+        (b.datum_ende && dateKey >= b.datum_start && dateKey <= b.datum_ende);
+      return matchesRoom && matchesDate;
+    });
   };
 
   const handlePrevMonth = () => {
@@ -157,30 +161,20 @@ export default function RaumbelegungsplanView() {
     setSelectedRaum(raum);
     setSelectedDate(formatDateKey(day));
     setEditingBelegung(null);
-    setFormData({
-      raum: raum.id,
-      titel: "",
-      kontaktperson: "",
-      telefon: "",
-      teilnehmerzahl: "",
-      datum_start: formatDateKey(day),
-      datum_ende: "",
-      startzeit_neu: kategorien.length > 0 ? kategorien[0].id : null
-      endzeit: "17:00",
-      kategorie: "termin",
-      wiederholung: "keine",
-      wiederholung_bis: "",
-      beschreibung: "",
-    });
-    setDialogOpen(true);
+    setActionDialogOpen(true);
   };
 
   const handleSave = async () => {
     try {
       // Validiere erforderliche Felder
-      if (!formData.raum || !formData.titel || !formData.datum_start) {
+      if (
+        !formData.raum ||
+        formData.raum.length === 0 ||
+        !formData.titel ||
+        !formData.datum_start
+      ) {
         alert(
-          "Bitte füllen Sie alle erforderlichen Felder aus (Raum, Titel, Datum)"
+          "Bitte füllen Sie alle erforderlichen Felder aus (Räume, Titel, Datum)"
         );
         return;
       }
@@ -200,11 +194,21 @@ export default function RaumbelegungsplanView() {
         "Fehler beim Speichern:",
         error.response?.data || error.message
       );
+      const konfliktInfo = error.response?.data?.konflikte;
       const errorMsg =
+        error.response?.data?.ueberschneidung ||
         error.response?.data?.detail ||
         error.response?.data?.non_field_errors?.[0] ||
         "Fehler beim Speichern";
-      alert(`Fehler: ${errorMsg}`);
+      if (konfliktInfo) {
+        alert(
+          `${errorMsg}\nKonflikte:\n${konfliktInfo
+            .map((k) => `• Raum ${k.raum_name}: ${k.zeitraum}`)
+            .join("\n")}`
+        );
+      } else {
+        alert(`Fehler: ${errorMsg}`);
+      }
     }
   };
 
@@ -231,15 +235,23 @@ export default function RaumbelegungsplanView() {
     MONTH_NAMES[currentDate.getMonth()]
   } ${currentDate.getFullYear()}`;
 
-  returStack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h4">
-          Raumbelegungsplan
-        </Typography>
+  return (
+    <Box>
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ mb: 2 }}
+      >
+        <Typography variant="h4">Raumbelegungsplan</Typography>
         {/* Legende */}
         {kategorien.length > 0 && (
           <Stack direction="row" spacing={2} flexWrap="wrap">
             {kategorien.map((kat) => (
-              <Box key={kat.id} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box
+                key={kat.id}
+                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+              >
                 <Box
                   sx={{
                     width: 16,
@@ -255,9 +267,7 @@ export default function RaumbelegungsplanView() {
             ))}
           </Stack>
         )}
-      </Stackvariant="h4" sx={{ mb: 2 }}>
-        Raumbelegungsplan
-      </Typography>
+      </Stack>
 
       {/* Monats-Navigation */}
       <Stack direction="row" spacing={1} sx={{ mb: 2 }} alignItems="center">
@@ -270,12 +280,45 @@ export default function RaumbelegungsplanView() {
         <IconButton onClick={handleNextMonth}>
           <ChevronRightIcon />
         </IconButton>
+        <Stack direction="row" spacing={1} sx={{ ml: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              const jahr = currentDate.getFullYear();
+              const monat = String(currentDate.getMonth() + 1);
+              window.open(
+                `/raeume/export/ics/?jahr=${jahr}&monat=${monat}`,
+                "_blank"
+              );
+            }}
+          >
+            ICS Export
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              const jahr = currentDate.getFullYear();
+              window.open(`/raeume/export/excel/?jahr=${jahr}`, "_blank");
+            }}
+          >
+            Excel Export
+          </Button>
+        </Stack>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => {
             if (raeume.length > 0) {
-              handleDayClick(1, raeume[0]);
+              // Direkt neue Buchung ohne Datum-Vorwahl
+              setSelectedRaum(raeume[0]);
+              setSelectedDate(formatDateKey(1));
+              setEditingBelegung(null);
+              setFormData((prev) => ({
+                ...prev,
+                raum: [raeume[0].id],
+                datum_start: formatDateKey(1),
+              }));
+              setDialogOpen(true);
             } else {
               alert("Bitte erst einen Raum anlegen");
             }
@@ -361,9 +404,13 @@ export default function RaumbelegungsplanView() {
                                 </Typography>
                                 <Box sx={{ mt: 0.5 }}>
                                   {dayBelegungen.map((b) => {
-                                    const kategorie = kategorien.find(k => k.id === b.kategorie_neu);
-                                    const farbe = kategorie ? kategorie.farbe : (b.farbe || "#2563eb");
-                                    
+                                    const kategorie = kategorien.find(
+                                      (k) => k.id === b.kategorie_neu
+                                    );
+                                    const farbe = kategorie
+                                      ? kategorie.farbe
+                                      : b.farbe || "#2563eb";
+
                                     return (
                                       <Card
                                         key={b.id}
@@ -422,6 +469,46 @@ export default function RaumbelegungsplanView() {
         </Paper>
       ))}
 
+      {/* Auswahl-Dialog bei Tagesklick */}
+      <Dialog
+        open={actionDialogOpen}
+        onClose={() => setActionDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Aktion wählen</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2 }}>Datum: {selectedDate}</Typography>
+          <Stack spacing={1}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setFormData((prev) => ({
+                  ...prev,
+                  raum: selectedRaum?.id ? [selectedRaum.id] : [],
+                  datum_start: selectedDate,
+                  datum_ende: "",
+                }));
+                setActionDialogOpen(false);
+                setDialogOpen(true);
+              }}
+            >
+              Neuen Termin anlegen
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setActionDialogOpen(false);
+                setDayViewOpen(true);
+              }}
+            >
+              Tagesansicht öffnen
+            </Button>
+          </Stack>
+        </DialogContent>
+      </Dialog>
+
       {/* Dialog für neue/bearbeitete Buchung */}
       <Dialog
         open={dialogOpen}
@@ -434,12 +521,19 @@ export default function RaumbelegungsplanView() {
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <TextField
-            label="Raum"
+            label="Räume"
             fullWidth
             margin="normal"
             select
+            SelectProps={{ multiple: true }}
             value={formData.raum}
-            onChange={(e) => setFormData({ ...formData, raum: e.target.value })}
+            onChange={(e) => {
+              const value = e.target.value;
+              const ids = Array.isArray(value)
+                ? value.map((v) => Number(v))
+                : [];
+              setFormData({ ...formData, raum: ids });
+            }}
           >
             {raeume.map((r) => (
               <MenuItem key={r.id} value={r.id}>
@@ -537,9 +631,14 @@ export default function RaumbelegungsplanView() {
           <TextField
             label="Kategorie"
             fullWidth
-            margin="normal"_neu || ""}
+            margin="normal"
+            select
+            value={formData.kategorie_neu || ""}
             onChange={(e) =>
-              setFormData({ ...formData, kategorie_neu: e.target.value })
+              setFormData({
+                ...formData,
+                kategorie_neu: Number(e.target.value),
+              })
             }
           >
             {kategorien.map((kat) => (
@@ -557,8 +656,6 @@ export default function RaumbelegungsplanView() {
                 </Box>
               </MenuItem>
             ))}
-            <MenuItem value="termin">Termin</MenuItem>
-            <MenuItem value="fest">Festgelegt</MenuItem>
           </TextField>
 
           <TextField
@@ -630,8 +727,8 @@ export default function RaumbelegungsplanView() {
         <DialogTitle>Löschen bestätigen</DialogTitle>
         <DialogContent>
           <Typography>
-            Möchten Sie diesen Termin wirklich löschen? Diese Aktion kann
-            nicht rückgängig gemacht werden.
+            Möchten Sie diesen Termin wirklich löschen? Diese Aktion kann nicht
+            rückgängig gemacht werden.
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -639,6 +736,84 @@ export default function RaumbelegungsplanView() {
           <Button color="error" variant="contained" onClick={performDelete}>
             Löschen
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Tagesansicht Dialog */}
+      <Dialog
+        open={dayViewOpen}
+        onClose={() => setDayViewOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Tagesansicht – {selectedDate}</DialogTitle>
+        <DialogContent>
+          <Stack direction="row" spacing={2}>
+            <Box sx={{ flex: 1 }}>
+              {raeume.map((raum) => {
+                const dayBelegungen = getBelegungenForDay(
+                  Number(selectedDate?.split("-")[2]),
+                  raum
+                );
+                return (
+                  <Box key={raum.id} sx={{ mb: 2 }}>
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                      {raum.name}
+                    </Typography>
+                    {dayBelegungen.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary">
+                        Keine Termine
+                      </Typography>
+                    ) : (
+                      dayBelegungen.map((b) => {
+                        const kategorie = kategorien.find(
+                          (k) => k.id === b.kategorie_neu
+                        );
+                        const farbe = kategorie
+                          ? kategorie.farbe
+                          : b.farbe || "#2563eb";
+                        return (
+                          <Card
+                            key={`${raum.id}-${b.id}`}
+                            sx={{
+                              mb: 1,
+                              backgroundColor: farbe,
+                              cursor: "pointer",
+                            }}
+                            onClick={() => {
+                              setEditingBelegung(b);
+                              setFormData(b);
+                              setSelectedRaum(raum);
+                              setDayViewOpen(false);
+                              setDialogOpen(true);
+                            }}
+                          >
+                            <CardContent sx={{ p: 1 }}>
+                              <Typography
+                                variant="body2"
+                                sx={{ color: "white", fontWeight: "bold" }}
+                              >
+                                {b.titel}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "white" }}
+                              >
+                                {b.startzeit} – {b.endzeit}
+                              </Typography>
+                            </CardContent>
+                          </Card>
+                        );
+                      })
+                    )}
+                  </Box>
+                );
+              })}
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDayViewOpen(false)}>Schließen</Button>
         </DialogActions>
       </Dialog>
     </Box>

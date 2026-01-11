@@ -7,6 +7,7 @@ from .serializers import GemeindeterminSerializer, MitarbeitereintraginSerialize
 from .services import FeiertagService
 from datetime import datetime, timedelta
 import calendar
+from io import BytesIO
 
 
 @api_view(['GET'])
@@ -174,7 +175,6 @@ def jahreskalender_excel_export(request):
     ws.column_dimensions['D'].width = 15
     
     # Excel-Datei in HttpResponse schreiben
-    from io import BytesIO
     excel_file = BytesIO()
     wb.save(excel_file)
     excel_file.seek(0)
@@ -185,6 +185,246 @@ def jahreskalender_excel_export(request):
     )
     response['Content-Disposition'] = f'attachment; filename="jahreskalender_{jahr}.xlsx"'
     
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAdminUser])
+def mitarbeiter_ics_export(request):
+    """Export Mitarbeiter-Einträge als ICS Datei (admin-only)"""
+    jahr = request.GET.get('jahr')
+    monat = request.GET.get('monat')
+
+    eintraege = Mitarbeitereintrag.objects.all()
+    if jahr:
+        eintraege = eintraege.filter(datum_start__year=int(jahr))
+    if monat:
+        eintraege = eintraege.filter(datum_start__month=int(monat))
+    eintraege = eintraege.order_by('datum_start', 'startzeit')
+
+    ics = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//FECG Lahr//Mitarbeiterkalender//DE',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+    ]
+
+    for e in eintraege:
+        name = e.mitarbeiter.vollstaendiger_name if e.mitarbeiter else e.person or 'Unbekannt'
+        start_date = e.datum_start
+        end_date = e.datum_ende if e.datum_ende else e.datum_start
+        # Zeit-Fallbacks
+        start_time = e.startzeit or (datetime.min.time().replace(hour=9, minute=0))
+        end_time = e.endzeit or (datetime.min.time().replace(hour=17, minute=0))
+        dtstart = datetime.combine(start_date, start_time)
+        dtend = datetime.combine(end_date, end_time)
+
+        uid = f"mitarbeiter-{e.id}@fecg-lahr.de"
+        kat_name = e.kategorie.bezeichnung if e.kategorie else e.get_typ_display()
+        summary = f"{name}: {e.titel or e.get_typ_display()}"
+        descr = e.beschreibung or ''
+
+        ics.extend([
+            'BEGIN:VEVENT',
+            f'UID:{uid}',
+            f'DTSTAMP:{datetime.now().strftime("%Y%m%dT%H%M%SZ")}',
+            f'DTSTART:{dtstart.strftime("%Y%m%dT%H%M%S")}',
+            f'DTEND:{dtend.strftime("%Y%m%dT%H%M%S")}',
+            f'SUMMARY:{summary}',
+            f'DESCRIPTION:{descr}',
+            f'CATEGORIES:{kat_name}',
+            'END:VEVENT'
+        ])
+
+    ics.append('END:VCALENDAR')
+
+    response = HttpResponse("\r\n".join(ics), content_type='text/calendar; charset=utf-8')
+    filename = f"mitarbeiter_{jahr or 'alle'}_{monat or 'alle'}.ics"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAdminUser])
+def mitarbeiter_excel_export(request):
+    """Export Mitarbeiter-Einträge als Excel (admin-only)"""
+    jahr = request.GET.get('jahr')
+    if not jahr:
+        jahr = datetime.now().year
+    else:
+        jahr = int(jahr)
+
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill
+    except ImportError:
+        return Response({"error": "openpyxl nicht installiert"}, status=500)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"Mitarbeiter {jahr}"
+    ws.append(["Name", "Typ", "Titel", "Von", "Bis", "Zeit", "Kategorie"])
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill(start_color="E0E0E0", end_color="E0E0E0", fill_type="solid")
+
+    eintraege = Mitarbeitereintrag.objects.filter(datum_start__year=jahr).order_by('datum_start')
+    for e in eintraege:
+        name = e.mitarbeiter.vollstaendiger_name if e.mitarbeiter else e.person or 'Unbekannt'
+        zeit = "-"
+        if e.startzeit and e.endzeit:
+            zeit = f"{e.startzeit.strftime('%H:%M')} - {e.endzeit.strftime('%H:%M')}"
+        ws.append([
+            name,
+            e.get_typ_display(),
+            e.titel,
+            e.datum_start.strftime('%d.%m.%Y'),
+            (e.datum_ende or e.datum_start).strftime('%d.%m.%Y'),
+            zeit,
+            e.kategorie.bezeichnung if e.kategorie else ''
+        ])
+
+    ws.column_dimensions['A'].width = 25
+    ws.column_dimensions['B'].width = 15
+    ws.column_dimensions['C'].width = 30
+    ws.column_dimensions['D'].width = 12
+    ws.column_dimensions['E'].width = 12
+    ws.column_dimensions['F'].width = 18
+    ws.column_dimensions['G'].width = 18
+
+    excel_file = BytesIO()
+    wb.save(excel_file)
+    excel_file.seek(0)
+
+    response = HttpResponse(
+        excel_file.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="mitarbeiter_{jahr}.xlsx"'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def raumbelegungen_ics_export(request):
+    """Export Raumbelegungen als ICS Datei"""
+    jahr = request.GET.get('jahr')
+    monat = request.GET.get('monat')
+
+    belegungen = Raumbelegung.objects.all()
+    if jahr:
+        belegungen = belegungen.filter(datum_start__year=int(jahr))
+    if monat:
+        belegungen = belegungen.filter(datum_start__month=int(monat))
+    belegungen = belegungen.order_by('datum_start', 'startzeit')
+
+    ics = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//FECG Lahr//Raumbelegungsplan//DE',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+    ]
+
+    for b in belegungen:
+        rooms = ", ".join([r.name for r in b.raum.all()])
+        start_date = b.datum_start
+        end_date = b.datum_ende if b.datum_ende else b.datum_start
+        start_time = b.startzeit or (datetime.min.time().replace(hour=9, minute=0))
+        end_time = b.endzeit or (datetime.min.time().replace(hour=17, minute=0))
+        dtstart = datetime.combine(start_date, start_time)
+        dtend = datetime.combine(end_date, end_time)
+
+        uid = f"raumbelegung-{b.id}@fecg-lahr.de"
+        kat_name = b.kategorie_neu.bezeichnung if b.kategorie_neu else b.get_kategorie_display()
+        summary = f"{rooms}: {b.titel}"
+        descr_parts = [
+            f"Kontakt: {b.kontaktperson}",
+            f"Telefon: {b.telefon}",
+        ]
+        if b.teilnehmerzahl:
+            descr_parts.append(f"Teilnehmer: {b.teilnehmerzahl}")
+        if b.beschreibung:
+            descr_parts.append(b.beschreibung)
+
+        ics.extend([
+            'BEGIN:VEVENT',
+            f'UID:{uid}',
+            f'DTSTAMP:{datetime.now().strftime("%Y%m%dT%H%M%SZ")}',
+            f'DTSTART:{dtstart.strftime("%Y%m%dT%H%M%S")}',
+            f'DTEND:{dtend.strftime("%Y%m%dT%H%M%S")}',
+            f'SUMMARY:{summary}',
+            f'DESCRIPTION:{' \n'.join(descr_parts)}',
+            f'CATEGORIES:{kat_name}',
+            'END:VEVENT'
+        ])
+
+    ics.append('END:VCALENDAR')
+
+    response = HttpResponse("\r\n".join(ics), content_type='text/calendar; charset=utf-8')
+    filename = f"raeume_{jahr or 'alle'}_{monat or 'alle'}.ics"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def raumbelegungen_excel_export(request):
+    """Export Raumbelegungen als Excel"""
+    jahr = request.GET.get('jahr')
+    if not jahr:
+        jahr = datetime.now().year
+    else:
+        jahr = int(jahr)
+
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill
+    except ImportError:
+        return Response({"error": "openpyxl nicht installiert"}, status=500)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"Räume {jahr}"
+    ws.append(["Datum", "Zeit", "Titel", "Räume", "Kontakt", "Telefon", "Kategorie"])
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill(start_color="E0E0E0", end_color="E0E0E0", fill_type="solid")
+
+    belegungen = Raumbelegung.objects.filter(datum_start__year=jahr).order_by('datum_start', 'startzeit')
+    for b in belegungen:
+        rooms = ", ".join([r.name for r in b.raum.all()])
+        zeit = "-"
+        if b.startzeit and b.endzeit:
+            zeit = f"{b.startzeit.strftime('%H:%M')} - {b.endzeit.strftime('%H:%M')}"
+        ws.append([
+            b.datum_start.strftime('%d.%m.%Y'),
+            zeit,
+            b.titel,
+            rooms,
+            b.kontaktperson,
+            b.telefon,
+            b.kategorie_neu.bezeichnung if b.kategorie_neu else b.get_kategorie_display()
+        ])
+
+    ws.column_dimensions['A'].width = 12
+    ws.column_dimensions['B'].width = 16
+    ws.column_dimensions['C'].width = 30
+    ws.column_dimensions['D'].width = 25
+    ws.column_dimensions['E'].width = 20
+    ws.column_dimensions['F'].width = 16
+    ws.column_dimensions['G'].width = 18
+
+    excel_file = BytesIO()
+    wb.save(excel_file)
+    excel_file.seek(0)
+
+    response = HttpResponse(
+        excel_file.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="raeume_{jahr}.xlsx"'
     return response
 
 
