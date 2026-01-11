@@ -27,7 +27,7 @@ export default function GemeindeteminePage() {
 
   const handleExcelExport = () => {
     const currentYear = new Date().getFullYear();
-    const url = `${API_BASE_URL}/api/kalender/kalender/export/excel/?jahr=${currentYear}`;
+    const url = `${API_BASE_URL}/api/kalender/export/excel/?jahr=${currentYear}`;
     window.open(url, "_blank");
   };
 
