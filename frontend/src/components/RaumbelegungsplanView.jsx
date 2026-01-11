@@ -62,6 +62,8 @@ export default function RaumbelegungsplanView() {
   const [editingBelegung, setEditingBelegung] = useState(null);
   const [selectedRaum, setSelectedRaum] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const [formData, setFormData] = useState({
     raum: "",
@@ -206,10 +208,18 @@ export default function RaumbelegungsplanView() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Buchung löschen?")) return;
+  const confirmDelete = (id) => {
+    setDeleteTarget(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const performDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await axiosInstance.delete(`/raumbelegungen/${id}/`);
+      await axiosInstance.delete(`/raumbelegungen/${deleteTarget}/`);
+      setDeleteConfirmOpen(false);
+      setDialogOpen(false);
+      setDeleteTarget(null);
       loadData();
     } catch (error) {
       console.error("Fehler beim Löschen:", error);
@@ -598,8 +608,7 @@ export default function RaumbelegungsplanView() {
             <Button
               color="error"
               onClick={() => {
-                handleDelete(editingBelegung.id);
-                setDialogOpen(false);
+                confirmDelete(editingBelegung.id);
               }}
             >
               Löschen
@@ -608,6 +617,27 @@ export default function RaumbelegungsplanView() {
           <Button onClick={() => setDialogOpen(false)}>Abbrechen</Button>
           <Button onClick={handleSave} variant="contained">
             Speichern
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Bestätigungsdialog für Löschen */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Löschen bestätigen</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Möchten Sie diesen Termin wirklich löschen? Diese Aktion kann
+            nicht rückgängig gemacht werden.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>Abbrechen</Button>
+          <Button color="error" variant="contained" onClick={performDelete}>
+            Löschen
           </Button>
         </DialogActions>
       </Dialog>
