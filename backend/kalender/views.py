@@ -348,6 +348,7 @@ def raumbelegungen_ics_export(request):
         if b.beschreibung:
             descr_parts.append(b.beschreibung)
 
+        descr_text = '\\n'.join(descr_parts)
         ics.extend([
             'BEGIN:VEVENT',
             f'UID:{uid}',
@@ -355,7 +356,7 @@ def raumbelegungen_ics_export(request):
             f'DTSTART:{dtstart.strftime("%Y%m%dT%H%M%S")}',
             f'DTEND:{dtend.strftime("%Y%m%dT%H%M%S")}',
             f'SUMMARY:{summary}',
-            f"DESCRIPTION:{'\\n'.join(descr_parts)}",
+            f'DESCRIPTION:{descr_text}',
             f'CATEGORIES:{kat_name}',
             'END:VEVENT'
         ])
