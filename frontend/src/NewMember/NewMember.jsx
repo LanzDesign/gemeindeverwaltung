@@ -122,6 +122,7 @@ function NewMember() {
   }, []); // Leeres Array bedeutet: Nur einmal beim ersten Rendern ausführen
 
   const onSubmit = async (data) => {
+    console.log("=== NewMember onSubmit ===");
     console.log("Rohdaten vom Formular:", data);
     setStatus(null);
 
@@ -138,9 +139,17 @@ function NewMember() {
     delete cleanData.current_services;
     delete cleanData.desired_services;
 
+    console.log("=== cleanData nach Verarbeitung ===");
+    console.log("cleanData:", cleanData);
+    console.log("cleanData.first_name:", cleanData.first_name);
+    console.log("cleanData.last_name:", cleanData.last_name);
+
     // Schritt 1: Daten speichern und zu Schritt 2 wechseln
     // Falls Foto vorhanden, anhängen (wird in Schritt 2 als FormData gesendet)
-    setMemberData({ ...cleanData, photo: photoFile || null });
+    const finalData = { ...cleanData, photo: photoFile || null };
+    console.log("=== finalData zum Speichern ===");
+    console.log("finalData:", finalData);
+    setMemberData(finalData);
     setActiveStep(1);
   };
 
