@@ -201,22 +201,36 @@ function PrivacyConsentForm({ memberData, onComplete }) {
       formData.append("privacy_children", consents.childrenData);
 
       // Alle Felder hinzufügen (ohne Mapping - Backend erwartet die exakten Feldnamen)
+      console.log("=== FormData wird aufgebaut ===");
+      console.log("memberData:", memberData);
+      
       Object.keys(memberData).forEach((key) => {
         const value = memberData[key];
-        if (value === null || value === undefined) return;
+        if (value === null || value === undefined) {
+          console.log(`Überspringe ${key}: null/undefined`);
+          return;
+        }
 
         if (key === "photo" && value instanceof Blob) {
           formData.append("photo", value, "photo.jpg");
+          console.log(`Added photo: Blob`);
         } else if (Array.isArray(value)) {
           // Arrays als JSON-String senden
           formData.append(key, JSON.stringify(value));
+          console.log(`Added ${key}: ${JSON.stringify(value)}`);
         } else {
           formData.append(key, value);
+          console.log(`Added ${key}: ${value}`);
         }
       });
 
       // Consent-Daten als Metadata speichern (optional für später)
       formData.append("consent_metadata", JSON.stringify(consents));
+      
+      console.log("=== FormData Keys ===");
+      for (let pair of formData.entries()) {
+        console.log(pair[0], ":", pair[1]);
+      }
 
       onComplete(formData, consents);
     });
