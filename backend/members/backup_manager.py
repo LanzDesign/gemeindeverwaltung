@@ -7,6 +7,7 @@ und bietet Download-Funktionalität im Admin-Interface.
 
 import os
 import subprocess
+import shutil
 from datetime import datetime
 from pathlib import Path
 from django.conf import settings
@@ -20,7 +21,7 @@ class BackupManager:
     
     def __init__(self):
         self.backup_dir = getattr(settings, 'BACKUP_DIR', Path(settings.BASE_DIR) / 'backups')
-        self.backup_dir.mkdir(exist_ok=True)
+        self.backup_dir.mkdir(parents=True, exist_ok=True)
         
     def create_backup(self, backup_type='full'):
         """
@@ -61,16 +62,29 @@ class BackupManager:
         if 'postgresql' in engine:
             filename = f"fecg_postgres_{timestamp}.sql"
             filepath = self.backup_dir / filename
-            
-            # PostgreSQL pg_dump
+
+            # PostgreSQL pg_dump (benötigt postgresql-client)
+            if not shutil.which('pg_dump'):
+                print("SQL-Backup fehlgeschlagen: pg_dump nicht gefunden. Installiere postgresql-client.")
+                return None
+
             cmd = [
                 'pg_dump',
-                '-h', db_config.get('HOST', 'localhost'),
                 '-U', db_config['USER'],
                 '-d', db_config['NAME'],
                 '-f', str(filepath),
-                '--no-password'
+                '--no-password',
+                '--no-owner',
+                '--no-acl'
             ]
+
+            host = db_config.get('HOST')
+            if host:
+                cmd.extend(['-h', host])
+
+            port = db_config.get('PORT')
+            if port:
+                cmd.extend(['-p', str(port)])
             
             # Setze Passwort als Umgebungsvariable
             env = os.environ.copy()
@@ -88,14 +102,25 @@ class BackupManager:
             filepath = self.backup_dir / filename
             
             # MySQL mysqldump
+            if not shutil.which('mysqldump'):
+                print("SQL-Backup fehlgeschlagen: mysqldump nicht gefunden.")
+                return None
+
             cmd = [
                 'mysqldump',
-                '-h', db_config.get('HOST', 'localhost'),
                 '-u', db_config['USER'],
                 f"-p{db_config['PASSWORD']}",
                 db_config['NAME'],
                 '--result-file', str(filepath)
             ]
+
+            host = db_config.get('HOST')
+            if host:
+                cmd.extend(['-h', host])
+
+            port = db_config.get('PORT')
+            if port:
+                cmd.extend(['-P', str(port)])
             
             try:
                 subprocess.run(cmd, check=True, capture_output=True)
